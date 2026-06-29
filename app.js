@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Undo & Redo State History Stacks
   let undoStack = [];
   let redoStack = [];
-  const MAX_HISTORY_STATES = 20; // મેક્સિમમ કેટલા સ્ટેપ્સ પાછળ જઈ શકાય
+  const MAX_HISTORY_STATES = 20;
 
   // --- 1. Image Import Management Pipeline ---
   imageInput.addEventListener('change', handleFileSelection);
@@ -75,6 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function initializeCanvasContext() {
+    if (!loadedImage) return;
+
     // Constraint-bounded canvas layout geometry map scaling
     const maxWorkspaceWidth = Math.min(800, dropZone.clientWidth - 48);
     const maxWorkspaceHeight = Math.min(500, dropZone.clientHeight - 48);
@@ -91,12 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     
-    // Draw initial state matrix
+    // બેઝિક ફિલ્ટર્સ ક્લિયર કરી ઓરિજિનલ ફોટો ડ્રો કરવો
+    ctx.filter = 'none';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(loadedImage, 0, 0, targetWidth, targetHeight);
     
     imageMetaDisplay.textContent = `${loadedImage.width} × ${loadedImage.height} px`;
     
-    // Clear initial view constraints out of view
+    // વ્યુ સેટિંગ્સ બદલવા
     emptyState.style.display = 'none';
     canvas.style.display = 'block';
     
@@ -104,11 +108,21 @@ document.addEventListener('DOMContentLoaded', () => {
     currentZoom = 1;
     applyZoom();
     
+    // હિસ્ટ્રી રીસેટ કરીને પહેલી સ્ટેટ પુશ કરવી
     undoStack = [];
     redoStack = [];
-    saveHistoryState(); // પ્રથમ બેઝ સ્ટેટ સેવ કરો
+    undoStack.push(canvas.toDataURL()); 
     
-    // Enable workflow toolbars
+    // સ્લાઇડર્સ રીસેટ કરવા
+    adjustmentSliders.forEach(slider => {
+      slider.value = 0;
+      const outputField = slider.nextElementSibling;
+      if (outputField && outputField.tagName === 'OUTPUT') {
+        outputField.textContent = '0';
+      }
+    });
+
+    // ટૂલબાર એક્ટિવેટ કરવા
     toggleInteractiveState(true);
   }
 
@@ -141,18 +155,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 3. Undo & Redo System Engine ---
   function saveHistoryState() {
+    if (!loadedImage) return;
     if (undoStack.length >= MAX_HISTORY_STATES) {
-      undoStack.shift(); // જૂની સ્ટેટ કાઢી નાખો
+      undoStack.shift(); 
     }
-    // કેનવાસનો હાલનો ફોટો ડેટા યુઆરએલ તરીકે સેવ કરો
     undoStack.push(canvas.toDataURL());
-    // જ્યારે પણ નવી એક્શન થાય ત્યારે રેડુ સ્ટેક ખાલી થાય
-    redoStack = [];
+    redoStack = []; // નવી એક્શન પર રેડુ ક્લિયર થાય
     updateUndoRedoButtons();
   }
 
   undoButton.addEventListener('click', () => {
-    if (undoStack.length <= 1) return; // જો માત્ર ઓરિજિનલ સ્ટેટ હોય તો અટકો
+    if (undoStack.length <= 1) return; 
 
     const currentState = undoStack.pop();
     redoStack.push(currentState);
@@ -199,11 +212,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       await isolateSubjectForeground();
-      
       bgStatus.textContent = 'Removed';
       bgStatus.className = 'status-badge active';
-      
-      saveHistoryState(); // AI પ્રોસેસ પત્યા પછી સ્ટેટ સેવ કરો
+      saveHistoryState(); 
     } catch (error) {
       console.error("AI Background Removal Error: ", error);
       bgStatus.textContent = 'Error';
@@ -265,7 +276,6 @@ document.addEventListener('DOMContentLoaded', () => {
       applyAdjustmentFilters();
     });
 
-    // જ્યારે યુઝર સ્લાઇડર ફેરવીને માઉસ છોડે (change event) ત્યારે જ સ્ટેટ સેવ કરો
     slider.addEventListener('change', () => {
       saveHistoryState();
     });
@@ -309,16 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   resetAdjustmentsBtn.addEventListener('click', () => {
-    adjustmentSliders.forEach(slider => {
-      slider.value = 0;
-      const outputField = slider.nextElementSibling;
-      if (outputField && outputField.tagName === 'OUTPUT') {
-        outputField.textContent = '0';
-      }
-    });
-    if (loadedImage) {
-      initializeCanvasContext();
-    }
+    if (loadedImage) initializeCanvasContext();
   });
 
   // --- 6. Retouch Toolbar Controls Selection Map Routing ---
@@ -370,6 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   canvas.addEventListener('mousedown', (e) => {
+    if (!loadedImage) return;
     isDrawing = true;
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / currentZoom;
@@ -380,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('mouseup', () => {
     if (isDrawing) {
       isDrawing = false;
-      saveHistoryState(); // બ્રશ ફેરવીને માઉસ છોડીએ ત્યારે સ્ટેટ સેવ થશે
+      saveHistoryState(); 
     }
   });
 
@@ -409,4 +411,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 8. File Export Infrastructure Trigger ---
-  downloadBtn.addEventListener
+  downloadBtn.addEventListener('click', () => {
+    if (!canvas || !loadedImage) return;
+    const targetDataUrl = canvas.toDataURL('image/png');
+    const transferAnchor = document.createElement('a');
+    transferAnchor.download = 'lumaforge-retouched-export.png';
+    transferAnchor.href = targetDataUrl;
+    transferAnchor.click();
+  });
+});
