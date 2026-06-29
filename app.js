@@ -94,64 +94,67 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- 2. AI Background Removal Pipeline Execution (Simulation Wrapper) ---
-  removeBgButton.addEventListener('click', () => {
+  // --- 2. AI Background Removal Pipeline Execution (Real AI Implementation) ---
+  removeBgButton.addEventListener('click', async () => {
     if (!loadedImage) return;
 
     // Update state to Processing
-    bgStatus.textContent = 'Processing...';
+    bgStatus.textContent = 'AI Processing...';
     bgStatus.className = 'status-badge processing';
     removeBgButton.disabled = true;
 
-    // Simulate server/model execution delay latency
-    setTimeout(() => {
-      isolateSubjectForeground();
+    try {
+      // AI મોડલ રન કરીને બેકગ્રાઉન્ડ રીમુવ કરો
+      await isolateSubjectForeground();
       
       // Update state to complete
       bgStatus.textContent = 'Removed';
       bgStatus.className = 'status-badge active';
+    } catch (error) {
+      console.error("AI Background Removal Error: ", error);
+      bgStatus.textContent = 'Error';
+      bgStatus.className = 'status-badge error';
+    } finally {
       removeBgButton.disabled = false;
-    }, 2200);
+    }
   });
 
-  function isolateSubjectForeground() {
+  async function isolateSubjectForeground() {
     const w = canvas.width;
     const h = canvas.height;
     
-    // Extract Image Data Matrix buffers
+    // જો ગ્લોબલ વિન્ડોમાં Body-Pix મોડલ લોડ ન થયું હોય તો તેને લોડ કરો
+    if (!window.bodyPixModel) {
+      bgStatus.textContent = 'Loading AI Model...';
+      window.bodyPixModel = await bodyPix.load({
+        architecture: 'MobileNetV1',
+        outputStride: 16,
+        multiplier: 0.75,
+        quantBytes: 2
+      });
+    }
+
+    // કેનવાસ પરથી માણસ (Person) ને સેગ્મેન્ટ (ડિટેક્ટ) કરો
+    const segmentation = await window.bodyPixModel.segmentPerson(canvas, {
+      internalResolution: 'medium',
+      segmentationThreshold: 0.7 // ચોકસાઈનો દર
+    });
+
+    // ઓરિજિનલ ઈમેજનો પિક્સેલ ડેટા લો
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
     
-    // Center point configuration boundaries for subject simulation mapping
-    const centerX = w / 2;
-    const centerY = h / 2;
-    const evaluationRadius = Math.min(w, h) * 0.38; // Radius parameterizing the subject boundary mask bounding box
-    const featherValue = parseInt(bgFeather.value, 10) || 2;
+    // લૂપ ચલાવીને જે ભાગ માણસનો નથી (0 છે), તેને ટ્રાન્સપરન્ટ (0 વિઝિબિલિટી) કરી દો
+    for (let i = 0; i < segmentation.data.length; i++) {
+      const isPerson = segmentation.data[i] === 1;
+      const alphaIndex = i * 4 + 3; // 4થો ભાગ એટલે Alpha Channel
 
-    // Walk pixels scanning and transforming matching background elements alpha configuration bounds channel
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const index = (y * w + x) * 4;
-        
-        // Calculate Euclidean distance vector from canvas geometric frame center
-        const dx = x - centerX;
-        const dy = y - centerY;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > evaluationRadius) {
-          // Pixel is outside subject boundary: calculate falloff mask alpha channel transition decay
-          const edgeDistance = distance - evaluationRadius;
-          if (edgeDistance < featherValue) {
-            const opacityRatio = 1 - (edgeDistance / featherValue);
-            data[index + 3] = Math.min(data[index + 3], opacityRatio * 255); // Alpha channel
-          } else {
-            data[index + 3] = 0; // Absolute Transparency
-          }
-        }
+      if (!isPerson) {
+        data[alphaIndex] = 0; // માણસ સિવાયનું બધું જ ગાયબ (Transparent)
       }
     }
     
-    // Re-render modified byte matrices back down safely to user canvas surface layout frame views
+    // સુધારેલો પિક્સેલ ડેટા પાછો કેનવાસ પર મૂકો
     ctx.putImageData(imgData, 0, 0);
   }
 
