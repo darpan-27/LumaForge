@@ -12,6 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const imageMetaDisplay = document.getElementById('imageMeta');
   const downloadBtn = document.getElementById('downloadButton');
   
+  // Zoom Controls
+  const zoomInBtn = document.getElementById('zoomInButton');
+  const zoomOutBtn = document.getElementById('zoomOutButton');
+  
   // Background Removal Tool Panel Nodes
   const removeBgButton = document.getElementById('removeBgButton');
   const bgStatus = document.getElementById('bgStatus');
@@ -35,6 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
   let loadedImage = null;
   let isDrawing = false;
   let activeTool = 'heal';
+  
+  // Zoom State Variables
+  let currentZoom = 1; // 1 = 100% ઓરિજિનલ સાઇઝ
+  const ZOOM_SPEED = 0.1; // એક ક્લિક પર કેટલું ઝૂમ કરવું
 
   // --- 1. Image Import Management Pipeline ---
   imageInput.addEventListener('change', handleFileSelection);
@@ -83,18 +91,41 @@ document.addEventListener('DOMContentLoaded', () => {
     emptyState.style.display = 'none';
     canvas.style.display = 'block';
     
+    // નવો ફોટો આવે ત્યારે ઝૂમ લેવલ રીસેટ કરો
+    currentZoom = 1;
+    applyZoom();
+    
     // Enable workflow toolbars
     toggleInteractiveState(true);
   }
 
   function toggleInteractiveState(isEnabled) {
-    const interactiveElements = [removeBgButton, bgFeather, autoEnhanceBtn, downloadBtn];
+    const interactiveElements = [removeBgButton, bgFeather, autoEnhanceBtn, downloadBtn, zoomInBtn, zoomOutBtn];
     interactiveElements.forEach(el => {
       if (el) el.disabled = !isEnabled;
     });
   }
 
-  // --- 2. AI Background Removal Pipeline Execution (Real AI Implementation) ---
+  // --- 2. Zoom In & Zoom Out Logic ---
+  zoomInBtn.addEventListener('click', () => {
+    if (!loadedImage) return;
+    currentZoom += ZOOM_SPEED;
+    if (currentZoom > 3) currentZoom = 3; // મેક્સિમમ ૩૦૦% ઝૂમ
+    applyZoom();
+  });
+
+  zoomOutBtn.addEventListener('click', () => {
+    if (!loadedImage) return;
+    currentZoom -= ZOOM_SPEED;
+    if (currentZoom < 0.5) currentZoom = 0.5; // મિનિમમ ૫૦% ઝૂમ આઉટ
+    applyZoom();
+  });
+
+  function applyZoom() {
+    canvas.style.transform = `scale(${currentZoom})`;
+  }
+
+  // --- 3. AI Background Removal Pipeline Execution ---
   removeBgButton.addEventListener('click', async () => {
     if (!loadedImage) return;
 
@@ -123,6 +154,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const w = canvas.width;
     const h = canvas.height;
     
+    if (typeof bodyPix === 'undefined') {
+      throw new Error("BodyPix library is not loaded. Check HTML scripts.");
+    }
+
     // જો ગ્લોબલ વિન્ડોમાં Body-Pix મોડલ લોડ ન થયું હોય તો તેને લોડ કરો
     if (!window.bodyPixModel) {
       bgStatus.textContent = 'Loading AI Model...';
@@ -163,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bgFeatherValue.textContent = e.target.value;
   });
 
-  // --- 3. Adjustment Sliders Integration ---
+  // --- 4. Adjustment Sliders Integration ---
   // Sync slider output elements and trigger generic re-render flags
   adjustmentSliders.forEach(slider => {
     const outputField = slider.nextElementSibling;
@@ -224,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loadedImage) initializeCanvasContext();
   });
 
-  // --- 4. Retouch Toolbar Controls Selection Map Routing ---
+  // --- 5. Retouch Toolbar Controls Selection Map Routing ---
   toolButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       toolButtons.forEach(b => b.classList.remove('active'));
@@ -250,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
     brushCursor.style.height = `${size}px`;
   }
 
-  // --- 5. Custom Canvas Brush Retouch System Interface Engine Hooks ---
+  // --- 6. Custom Canvas Brush Retouch System Interface Engine Hooks ---
   canvas.addEventListener('mouseenter', () => {
     brushCursor.style.display = 'block';
     updateBrushCursorSize();
@@ -261,10 +296,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   canvas.addEventListener('mousemove', (e) => {
-    // Sync absolute bounds relative targeting anchors offset maps
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    
+    // કોર્ડિનેટ્સને currentZoom વડે ભાગવાથી ઝૂમ કરેલા ફોટા પર પણ બ્રશ એકદમ સાચી જગ્યાએ ચાલશે
+    const x = (e.clientX - rect.left) / currentZoom;
+    const y = (e.clientY - rect.top) / currentZoom;
     
     brushCursor.style.left = `${e.clientX}px`;
     brushCursor.style.top = `${e.clientY}px`;
@@ -277,7 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
   canvas.addEventListener('mousedown', (e) => {
     isDrawing = true;
     const rect = canvas.getBoundingClientRect();
-    executeBrushStroke(e.clientX - rect.left, e.clientY - rect.top);
+    const x = (e.clientX - rect.left) / currentZoom;
+    const y = (e.clientY - rect.top) / currentZoom;
+    executeBrushStroke(x, y);
   });
 
   window.addEventListener('mouseup', () => {
@@ -309,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.restore();
   }
 
-  // --- 6. File Export Infrastructure Trigger ---
+  // --- 7. File Export Infrastructure Trigger ---
   downloadBtn.addEventListener('click', () => {
     if (!canvas) return;
     const targetDataUrl = canvas.toDataURL('image/png');
