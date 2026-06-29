@@ -1,16 +1,17 @@
 /* ==========================================================================
-   1. RESET & VARIABLE PROPERTIES
+   1. Design Tokens & Core Setup
    ========================================================================== */
 :root {
-  --bg-main: #121214;
+  --bg-app: #121214;
   --bg-sidebar: #1a1a1e;
   --bg-panel: #222227;
-  --bg-input: #2d2d34;
-  --accent: #3b82f6;
-  --accent-hover: #2563eb;
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --border: #2e2e36;
+  --border-color: #2d2d34;
+  --text-main: #e4e4e7;
+  --text-muted: #a1a1aa;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-dim: rgba(99, 102, 241, 0.15);
+  --danger: #ef4444;
   --radius: 8px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -23,54 +24,58 @@
 
 body {
   font-family: var(--font);
-  background-color: var(--bg-main);
+  background-color: var(--bg-app);
   color: var(--text-main);
-  overflow: hidden;
   height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* ==========================================================================
-   2. APP LAYOUT SHELL
+   2. App Shell Layout
    ========================================================================== */
 .app-shell {
   display: grid;
-  grid-template-columns: 340px 1fr;
+  grid-template-columns: 320px 1fr;
   height: 100vh;
   width: 100vw;
 }
 
-/* ==========================================================================
-   3. SIDEBAR & PANELS
-   ========================================================================== */
+/* Sidebar styling */
 .sidebar {
   background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 20px;
+  gap: 1.25rem;
+  padding: 1.5rem;
   overflow-y: auto;
 }
 
-/* Brand Logo Section */
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .brand-mark {
-  background: linear-gradient(135deg, var(--accent), #8b5cf6);
+  background: linear-gradient(135deg, #818cf8, var(--accent));
   color: white;
-  font-weight: bold;
-  padding: 8px 12px;
+  font-weight: 800;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: var(--radius);
-  font-size: 1.1rem;
+  font-size: 0.9rem;
 }
 
 .brand h1 {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 600;
+  line-height: 1.2;
 }
 
 .brand p {
@@ -78,50 +83,35 @@ body {
   color: var(--text-muted);
 }
 
-/* Generic Panels */
-.panel {
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
+/* Workspace / Main Area */
+.workspace {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.panel-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.panel-title h2 {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
+  height: 100%;
+  background-color: var(--bg-app);
+  position: relative;
 }
 
 /* ==========================================================================
-   4. INTERACTIVE COMPONENTS (BUTTONS & INPUTS)
+   3. Sidebar UI Panels & Controls
    ========================================================================== */
-/* Upload Zone */
 .upload-zone {
-  border: 2px dashed var(--border);
+  border: 2px dashed var(--border-color);
   border-radius: var(--radius);
-  padding: 24px 16px;
+  padding: 1.25rem;
   text-align: center;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 0.25rem;
   transition: all 0.2s ease;
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 .upload-zone:hover {
   border-color: var(--accent);
-  background-color: rgba(59, 130, 246, 0.04);
+  background-color: rgba(99, 102, 241, 0.04);
 }
 
 .upload-zone input {
@@ -134,7 +124,7 @@ body {
 }
 
 .upload-zone strong {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 .upload-zone small {
@@ -142,17 +132,105 @@ body {
   color: var(--text-muted);
 }
 
-/* Buttons */
+.panel {
+  background-color: var(--bg-panel);
+  border-radius: var(--radius);
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.panel-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.panel-title h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.status-badge {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: var(--text-muted);
+}
+
+.status-badge.processing {
+  background: var(--accent-dim);
+  color: #a5b4fc;
+}
+
+.status-badge.success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+/* Grids and Rows */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.tool-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.slider-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 28px;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  margin-top: 0.75rem;
+  color: var(--text-main);
+}
+
+.slider-row output {
+  text-align: right;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   4. Buttons & Interactive Elements
+   ========================================================================== */
 button {
   font-family: inherit;
-  cursor: pointer;
   border: none;
-  transition: all 0.2s;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.primary-button {
+  background-color: var(--accent);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.primary-button:not(:disabled):hover {
+  background-color: var(--accent-hover);
+}
+
+.full-width {
+  width: 100%;
 }
 
 .text-button {
@@ -162,133 +240,93 @@ button:disabled {
   font-weight: 500;
 }
 
-.text-button:hover:not(:disabled) {
-  color: var(--text-main);
-}
-
-/* Preset Grid */
-.preset-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+.text-button:hover {
+  text-decoration: underline;
 }
 
 .preset-button {
-  background-color: var(--bg-input);
+  background-color: rgba(255, 255, 255, 0.04);
   color: var(--text-main);
-  padding: 10px;
+  padding: 0.5rem;
   border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  font-size: 0.8rem;
   border: 1px solid transparent;
 }
 
-.preset-button:hover:not(:disabled) {
-  background-color: #34343b;
-  border-color: var(--text-muted);
+.preset-button:hover {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Tool Row & Icons */
-.tool-row {
-  display: flex;
-  gap: 8px;
+.preset-button.active {
+  background-color: var(--accent-dim);
+  border-color: var(--accent);
+  color: #a5b4fc;
 }
 
 .icon-button {
   flex: 1;
-  background-color: var(--bg-input);
+  background-color: rgba(255, 255, 255, 0.04);
   color: var(--text-main);
-  padding: 10px;
+  padding: 0.5rem;
   border-radius: 6px;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
-.icon-button.active, .icon-button:hover:not(:disabled) {
+.icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.icon-button.active {
   background-color: var(--accent);
   color: white;
 }
 
-#toolName {
-  font-size: 0.8rem;
-  color: var(--accent);
-  font-weight: bold;
-}
-
-/* Sliders Structure */
-.slider-row {
-  display: grid;
-  grid-template-columns: 80px 1fr 30px;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-}
-
-.slider-row span {
-  color: #d1d5db;
-}
-
-.slider-row output {
-  text-align: right;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Custom Range Input Styles */
+/* Input Range Slider styling */
 input[type="range"] {
   -webkit-appearance: none;
-  appearance: none;
   width: 100%;
-  background: var(--bg-input);
-  height: 6px;
-  border-radius: 3px;
+  background: transparent;
+}
+
+input[type="range"]:focus {
   outline: none;
 }
 
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
 input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
   height: 14px;
+  width: 14px;
   border-radius: 50%;
-  background: var(--text-main);
-  cursor: pointer;
-  transition: transform 0.1s;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
   background: var(--accent);
-}
-
-/* Adjustments specific container scrolling spacing */
-.adjustments {
-  padding-bottom: 24px;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -5px;
 }
 
 /* ==========================================================================
-   5. WORKSPACE & CANVAS AREA
+   5. Canvas Workspace & Interface Panels
    ========================================================================== */
-.workspace {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-main);
-  height: 100%;
-}
-
-/* Topbar */
 .topbar {
-  height: 60px;
-  background-color: var(--bg-sidebar);
-  border-bottom: 1px solid var(--border);
+  height: 56px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
+  padding: 0 1.5rem;
+  background-color: rgba(26, 26, 30, 0.5);
+  backdrop-filter: blur(8px);
 }
 
 .status strong {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .status span {
@@ -298,72 +336,90 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .actions {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .toolbar-button {
-  background-color: var(--bg-panel);
+  background: none;
   color: var(--text-main);
-  padding: 8px 14px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 6px;
-  font-size: 0.85rem;
-  border: 1px solid var(--border);
+  font-size: 1rem;
 }
 
 .toolbar-button:hover:not(:disabled) {
-  background-color: var(--bg-input);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-.primary-button {
-  background-color: var(--accent);
-  color: white;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.primary-button:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
-/* Canvas Stage */
+/* Canvas Area Container */
 .canvas-stage {
   flex: 1;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
   overflow: hidden;
+  padding: 2rem;
 }
 
 #photoCanvas {
   max-width: 100%;
   max-height: 100%;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  background-image: linear-gradient(45deg, #1f1f23 25%, transparent 25%), 
-                    linear-gradient(-45deg, #1f1f23 25%, transparent 25%), 
-                    linear-gradient(45deg, transparent 75%, #1f1f23 75%), 
-                    linear-gradient(-45deg, transparent 75%, #1f1f23 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0px; /* Transparent background pattern */
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  background-image: linear-gradient(45deg, #1d1d22 25%, transparent 25%), 
+                    linear-gradient(-45deg, #1d1d22 25%, transparent 25%), 
+                    linear-gradient(45deg, transparent 75%, #1d1d22 75%), 
+                    linear-gradient(-45deg, transparent 75%, #1d1d22 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  display: none;
 }
 
-/* Empty State Dashboard */
-.empty-state {
+/* Brush Pointer Follower */
+#brushCursor {
   position: absolute;
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4), inset 0 0 4px rgba(0,0,0,0.2);
+  border-radius: 50%;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  display: none;
+  z-index: 10;
+}
+
+/* Empty Placeholder view */
+.empty-state {
   text-align: center;
-  max-width: 400px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  max-width: 360px;
+}
+
+.sample-frame {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 1.5rem;
+  background: var(--bg-panel);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.sample-face {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  margin: 20px auto;
 }
 
 .empty-state h2 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 500;
+  margin-bottom: 0.5rem;
 }
 
 .empty-state p {
@@ -372,54 +428,30 @@ input[type="range"]::-webkit-slider-thumb:hover {
   line-height: 1.5;
 }
 
-/* Abstract placeholder graphic */
-.sample-frame {
-  width: 80px;
-  height: 80px;
-  background: var(--bg-panel);
-  border: 2px dashed var(--border);
-  border-radius: 50%;
-  position: relative;
-  margin-bottom: 10px;
-}
-
-/* ==========================================================================
-   6. BOTTOM STRIP & FOOTER
-   ========================================================================== */
+/* Bottom status strip */
 .bottom-strip {
-  height: 50px;
-  background-color: var(--bg-sidebar);
-  border-top: 1px solid var(--border);
+  height: 48px;
+  border-top: 1px solid var(--border-color);
+  padding: 0 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
-  font-size: 0.8rem;
+  background-color: var(--bg-sidebar);
 }
 
 .compare-meter {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.compare-meter input[type="range"] {
+.compare-meter input {
   width: 120px;
 }
 
 .hint {
+  font-size: 0.75rem;
   color: var(--text-muted);
-  font-style: italic;
-}
-
-/* Custom Brush Pointer */
-#brushCursor {
-  position: absolute;
-  border: 1px solid white;
-  border-radius: 50%;
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  display: none;
-  box-shadow: 0 0 4px rgba(0,0,0,0.5);
 }
