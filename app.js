@@ -34,10 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const toolButtons = document.querySelectorAll('.icon-button');
   const toolNameDisplay = document.getElementById('toolName');
 
-  // Adjustment Sliders
+  // Adjustment Sliders & Smart Presets
   const adjustmentSliders = document.querySelectorAll('.adjustments input[type="range"]');
   const resetAdjustmentsBtn = document.getElementById('resetAdjustments');
   const autoEnhanceBtn = document.getElementById('autoEnhance');
+  const presetButtons = document.querySelectorAll('.preset-button');
   
   // Context Management Variables
   let loadedImage = null;
@@ -45,8 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeTool = 'heal';
   
   // Zoom State Variables
-  let currentZoom = 1; // 1 = 100% ઓરિજિનલ સાઇઝ
-  const ZOOM_SPEED = 0.1; // એક ક્લિક પર કેટલું ઝૂમ કરવું
+  let currentZoom = 1;
+  const ZOOM_SPEED = 0.1;
 
   // Undo & Redo State History Stacks
   let undoStack = [];
@@ -77,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function initializeCanvasContext() {
     if (!loadedImage) return;
 
-    // Constraint-bounded canvas layout geometry map scaling
     const maxWorkspaceWidth = Math.min(800, dropZone.clientWidth - 48);
     const maxWorkspaceHeight = Math.min(500, dropZone.clientHeight - 48);
     
@@ -93,36 +93,23 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.width = targetWidth;
     canvas.height = targetHeight;
     
-    // બેઝિક ફિલ્ટર્સ ક્લિયર કરી ઓરિજિનલ ફોટો ડ્રો કરવો
     ctx.filter = 'none';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(loadedImage, 0, 0, targetWidth, targetHeight);
     
     imageMetaDisplay.textContent = `${loadedImage.width} × ${loadedImage.height} px`;
     
-    // વ્યુ સેટિંગ્સ બદલવા
     emptyState.style.display = 'none';
     canvas.style.display = 'block';
     
-    // નવો ફોટો આવે ત્યારે ઝૂમ અને હિસ્ટ્રી ક્લિયર કરો
     currentZoom = 1;
     applyZoom();
     
-    // હિસ્ટ્રી રીસેટ કરીને પહેલી સ્ટેટ પુશ કરવી
     undoStack = [];
     redoStack = [];
     undoStack.push(canvas.toDataURL()); 
     
-    // સ્લાઇડર્સ રીસેટ કરવા
-    adjustmentSliders.forEach(slider => {
-      slider.value = 0;
-      const outputField = slider.nextElementSibling;
-      if (outputField && outputField.tagName === 'OUTPUT') {
-        outputField.textContent = '0';
-      }
-    });
-
-    // ટૂલબાર એક્ટિવેટ કરવા
+    resetSlidersUI();
     toggleInteractiveState(true);
   }
 
@@ -132,6 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (el) el.disabled = !isEnabled;
     });
     updateUndoRedoButtons();
+  }
+
+  function resetSlidersUI() {
+    adjustmentSliders.forEach(slider => {
+      slider.value = 0;
+      const outputField = slider.nextElementSibling;
+      if (outputField && outputField.tagName === 'OUTPUT') {
+        outputField.textContent = '0';
+      }
+    });
   }
 
   // --- 2. Zoom In & Zoom Out Logic ---
@@ -160,7 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
       undoStack.shift(); 
     }
     undoStack.push(canvas.toDataURL());
-    redoStack = []; // નવી એક્શન પર રેડુ ક્લિયર થાય
+    redoStack = []; 
     updateUndoRedoButtons();
   }
 
@@ -202,7 +199,73 @@ document.addEventListener('DOMContentLoaded', () => {
     redoButton.disabled = redoStack.length === 0;
   }
 
-  // --- 4. AI Background Removal Pipeline Execution ---
+  // --- 4. Smart Presets & Auto Enhance Logic ---
+  autoEnhanceBtn.addEventListener('click', () => {
+    if (!loadedImage) return;
+    // Auto Enhance માટે સ્લાઇડર્સ સેટ કરો
+    updateSliderValue('exposure', 15);
+    updateSliderValue('contrast', 10);
+    updateSliderValue('saturation', 8);
+    updateSliderValue('clarity', 15);
+    
+    applyAdjustmentFilters();
+    saveHistoryState();
+  });
+
+  presetButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      if (!loadedImage) return;
+      const preset = button.dataset.preset;
+      
+      // પહેલા બધા સ્લાઇડર્સ શૂન્ય કરો
+      resetSlidersUI();
+
+      // અલગ અલગ પ્રીસેટ મુજબ વેલ્યુ સેટ કરવી
+      switch (preset) {
+        case 'clean':
+          updateSliderValue('exposure', 10);
+          updateSliderValue('contrast', 5);
+          updateSliderValue('saturation', -5);
+          updateSliderValue('clarity', 10);
+          break;
+        case 'portrait':
+          updateSliderValue('exposure', 15);
+          updateSliderValue('contrast', -5);
+          updateSliderValue('saturation', 5);
+          updateSliderValue('warmth', 8);
+          break;
+        case 'cinema':
+          updateSliderValue('exposure', -5);
+          updateSliderValue('contrast', 25);
+          updateSliderValue('saturation', 15);
+          updateSliderValue('warmth', -10);
+          updateSliderValue('vignette', 35);
+          break;
+        case 'product':
+          updateSliderValue('exposure', 20);
+          updateSliderValue('contrast', 15);
+          updateSliderValue('saturation', 20);
+          updateSliderValue('clarity', 25);
+          break;
+      }
+      
+      applyAdjustmentFilters();
+      saveHistoryState();
+    });
+  });
+
+  function updateSliderValue(adjustType, value) {
+    const slider = document.querySelector(`.adjustments input[data-adjust="${adjustType}"]`);
+    if (slider) {
+      slider.value = value;
+      const outputField = slider.nextElementSibling;
+      if (outputField && outputField.tagName === 'OUTPUT') {
+        outputField.textContent = value;
+      }
+    }
+  }
+
+  // --- 5. AI Background Removal Pipeline Execution ---
   removeBgButton.addEventListener('click', async () => {
     if (!loadedImage) return;
 
@@ -229,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const h = canvas.height;
     
     if (typeof bodyPix === 'undefined') {
-      throw new Error("BodyPix library is not loaded. Check HTML scripts.");
+      throw new Error("BodyPix library is not loaded.");
     }
 
     if (!window.bodyPixModel) {
@@ -266,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bgFeatherValue.textContent = e.target.value;
   });
 
-  // --- 5. Adjustment Sliders Integration ---
+  // --- 6. Adjustment Sliders Integration ---
   adjustmentSliders.forEach(slider => {
     const outputField = slider.nextElementSibling;
     slider.addEventListener('input', (e) => {
@@ -288,6 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
     
     let filterString = '';
+    let warmthValue = 0;
+    let vignetteValue = 0;
     
     adjustmentSliders.forEach(slider => {
       const type = slider.dataset.adjust;
@@ -308,6 +373,12 @@ document.addEventListener('DOMContentLoaded', () => {
         case 'clarity':
           filterString += `contrast(${100 + (value * 0.5)}%) saturate(${100 + (value * 0.1)}%) `;
           break;
+        case 'warmth':
+          warmthValue = value;
+          break;
+        case 'vignette':
+          vignetteValue = value;
+          break;
       }
     });
     
@@ -316,13 +387,40 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.drawImage(canvas, 0, 0);
       ctx.filter = 'none'; 
     }
+
+    // Warmth (Sepia/Blue blend Effect)
+    if (warmthValue !== 0) {
+      ctx.save();
+      if (warmthValue > 0) {
+        ctx.fillStyle = `rgba(255, 165, 0, ${warmthValue / 400})`; // Orange tint for warmth
+      } else {
+        ctx.fillStyle = `rgba(0, 0, 255, ${Math.abs(warmthValue) / 400})`; // Blue tint for cool
+      }
+      ctx.globalCompositeOperation = 'color';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
+
+    // Vignette Effect (Dark corners)
+    if (vignetteValue > 0) {
+      ctx.save();
+      const gradient = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.3,
+        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.7
+      );
+      gradient.addColorStop(0, 'rgba(0,0,0,0)');
+      gradient.addColorStop(1, `rgba(0,0,0,${vignetteValue / 100})`);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    }
   }
 
   resetAdjustmentsBtn.addEventListener('click', () => {
     if (loadedImage) initializeCanvasContext();
   });
 
-  // --- 6. Retouch Toolbar Controls Selection Map Routing ---
+  // --- 7. Retouch Toolbar Controls Map Routing ---
   toolButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       toolButtons.forEach(b => b.classList.remove('active'));
@@ -347,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
     brushCursor.style.height = `${size}px`;
   }
 
-  // --- 7. Custom Canvas Brush Retouch System Interface Engine Hooks ---
+  // --- 8. Custom Canvas Brush Retouch System Hooks ---
   canvas.addEventListener('mouseenter', () => {
     brushCursor.style.display = 'block';
     updateBrushCursorSize();
@@ -410,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.restore();
   }
 
-  // --- 8. File Export Infrastructure Trigger ---
+  // --- 9. File Export Infrastructure Trigger ---
   downloadBtn.addEventListener('click', () => {
     if (!canvas || !loadedImage) return;
     const targetDataUrl = canvas.toDataURL('image/png');
