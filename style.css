@@ -1,19 +1,18 @@
 /* ==========================================================================
-   1. Design Tokens & Core Setup
+   1. Design System & Base Setup
    ========================================================================== */
 :root {
   --bg-app: #121214;
   --bg-sidebar: #1a1a1e;
   --bg-panel: #222227;
-  --border-color: #2d2d34;
-  --text-main: #e4e4e7;
-  --text-muted: #a1a1aa;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-dim: rgba(99, 102, 241, 0.15);
-  --danger: #ef4444;
+  --bg-input: #2d2d34;
+  --accent: #5c6bc0;
+  --accent-hover: #7986cb;
+  --text-main: #e2e2e9;
+  --text-muted: #8a8a93;
+  --border: #2e2e35;
   --radius: 8px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --radius-sm: 4px;
 }
 
 * {
@@ -23,7 +22,7 @@
 }
 
 body {
-  font-family: var(--font);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-app);
   color: var(--text-main);
   height: 100vh;
@@ -32,7 +31,7 @@ body {
 }
 
 /* ==========================================================================
-   2. App Shell Layout
+   2. App Layout Shell
    ========================================================================== */
 .app-shell {
   display: grid;
@@ -41,111 +40,96 @@ body {
   width: 100vw;
 }
 
-/* Sidebar styling */
+/* ==========================================================================
+   3. Sidebar UI Components
+   ========================================================================== */
 .sidebar {
   background-color: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.5rem;
+  gap: 16px;
+  padding: 20px;
   overflow-y: auto;
 }
 
+/* Brand Header */
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
+  gap: 12px;
+  margin-bottom: 8px;
 }
-
 .brand-mark {
-  background: linear-gradient(135deg, #818cf8, var(--accent));
-  color: white;
+  background: linear-gradient(135deg, #818cf8, #5c6bc0);
+  color: #fff;
   font-weight: 800;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius);
-  font-size: 0.9rem;
+  font-size: 1.1rem;
 }
-
 .brand h1 {
   font-size: 1.1rem;
   font-weight: 600;
-  line-height: 1.2;
 }
-
 .brand p {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-/* Workspace / Main Area */
-.workspace {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: var(--bg-app);
-  position: relative;
-}
-
-/* ==========================================================================
-   3. Sidebar UI Panels & Controls
-   ========================================================================== */
+/* Drag-and-Drop Image Input Area */
 .upload-zone {
-  border: 2px dashed var(--border-color);
+  border: 2px dashed var(--border);
+  background-color: rgba(255, 255, 255, 0.02);
   border-radius: var(--radius);
-  padding: 1.25rem;
+  padding: 20px;
   text-align: center;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  transition: all 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.02);
+  gap: 6px;
+  transition: border-color 0.2s, background-color 0.2s;
 }
-
 .upload-zone:hover {
   border-color: var(--accent);
-  background-color: rgba(99, 102, 241, 0.04);
+  background-color: rgba(92, 107, 192, 0.05);
 }
-
-.upload-zone input {
+.upload-zone input[type="file"] {
   display: none;
 }
-
 .upload-icon {
   font-size: 1.5rem;
-  color: var(--accent);
+  color: var(--text-muted);
 }
-
 .upload-zone strong {
   font-size: 0.85rem;
 }
-
 .upload-zone small {
   font-size: 0.75rem;
   color: var(--text-muted);
+  line-height: 1.3;
 }
 
+/* Core Settings Control Panels */
 .panel {
   background-color: var(--bg-panel);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
 .panel-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.85rem;
 }
-
 .panel-title h2 {
   font-size: 0.85rem;
   font-weight: 600;
@@ -153,305 +137,294 @@ body {
   letter-spacing: 0.05em;
   color: var(--text-muted);
 }
-
 .status-badge {
   font-size: 0.7rem;
-  padding: 0.15rem 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background-color: var(--bg-input);
+  padding: 2px 8px;
+  border-radius: 10px;
   color: var(--text-muted);
 }
-
 .status-badge.processing {
-  background: var(--accent-dim);
-  color: #a5b4fc;
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #fef08a;
+}
+.status-badge.active {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #bbf7d0;
 }
 
-.status-badge.success {
-  background: rgba(34, 197, 94, 0.15);
-  color: #4ade80;
-}
-
-/* Grids and Rows */
+/* Preset Options & Retouch Toolbar Layout grids */
 .preset-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  gap: 8px;
 }
-
 .tool-row {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 8px;
+}
+.tool-action-block {
+  width: 100%;
 }
 
+/* Standardized Sliders */
 .slider-row {
   display: grid;
-  grid-template-columns: 60px 1fr 28px;
+  grid-template-columns: 70px 1fr 30px;
   align-items: center;
-  gap: 0.75rem;
+  gap: 8px;
   font-size: 0.8rem;
-  margin-top: 0.75rem;
+}
+.slider-row span {
   color: var(--text-main);
 }
-
 .slider-row output {
   text-align: right;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
-
-/* ==========================================================================
-   4. Buttons & Interactive Elements
-   ========================================================================== */
-button {
-  font-family: inherit;
-  border: none;
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: var(--bg-input);
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-main);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: transform 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+input[type="range"]:disabled::-webkit-slider-thumb {
+  background: var(--border);
+  cursor: not-allowed;
+  transform: none;
 }
 
+/* Generic Interactive Button Styles */
+button {
+  font-family: inherit;
+  font-size: 0.8rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+}
+button:hover:not(:disabled) {
+  background-color: var(--border);
+}
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
-
-.primary-button {
-  background-color: var(--accent);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius);
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.primary-button:not(:disabled):hover {
-  background-color: var(--accent-hover);
-}
-
 .full-width {
   width: 100%;
 }
-
-.text-button {
-  background: none;
-  color: var(--accent);
-  font-size: 0.8rem;
+.primary-button {
+  background-color: var(--accent);
+  color: #fff;
+  padding: 8px 14px;
   font-weight: 500;
 }
-
-.text-button:hover {
-  text-decoration: underline;
+.primary-button:hover:not(:disabled) {
+  background-color: var(--accent-hover);
 }
-
+.text-button {
+  background: transparent;
+  color: var(--accent);
+  padding: 2px 6px;
+}
+.text-button:hover:not(:disabled) {
+  background: rgba(92, 107, 192, 0.1);
+}
 .preset-button {
-  background-color: rgba(255, 255, 255, 0.04);
-  color: var(--text-main);
-  padding: 0.5rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  border: 1px solid transparent;
+  padding: 8px;
+  text-align: center;
 }
-
-.preset-button:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-}
-
-.preset-button.active {
-  background-color: var(--accent-dim);
-  border-color: var(--accent);
-  color: #a5b4fc;
-}
-
 .icon-button {
   flex: 1;
-  background-color: rgba(255, 255, 255, 0.04);
-  color: var(--text-main);
-  padding: 0.5rem;
-  border-radius: 6px;
-  font-size: 1rem;
+  height: 32px;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
-.icon-button:hover {
-  background-color: rgba(255, 255, 255, 0.08);
-}
-
 .icon-button.active {
   background-color: var(--accent);
   color: white;
 }
 
-/* Input Range Slider styling */
-input[type="range"] {
-  -webkit-appearance: none;
-  width: 100%;
-  background: transparent;
-}
-
-input[type="range"]:focus {
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 4px;
-  background: var(--border-color);
-  border-radius: 2px;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  height: 14px;
-  width: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  -webkit-appearance: none;
-  margin-top: -5px;
-}
-
 /* ==========================================================================
-   5. Canvas Workspace & Interface Panels
+   4. Interactive Workspace Canvas Stage
    ========================================================================== */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: relative;
+}
+
+/* Header Action-Bar */
 .topbar {
   height: 56px;
-  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 1.5rem;
-  background-color: rgba(26, 26, 30, 0.5);
-  backdrop-filter: blur(8px);
+  padding: 0 20px;
 }
-
+.status {
+  display: flex;
+  flex-direction: column;
+}
 .status strong {
-  display: block;
   font-size: 0.85rem;
   font-weight: 500;
 }
-
 .status span {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
-
 .actions {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
-
 .toolbar-button {
-  background: none;
-  color: var(--text-main);
-  width: 32px;
-  height: 32px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 
-.toolbar-button:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-/* Canvas Area Container */
+/* Main Interactive Canvas Container */
 .canvas-stage {
   flex: 1;
   position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  padding: 2rem;
+  padding: 24px;
+  /* Visual checkerboard grid layout backdrop pattern for isolated transparent PNG masks */
+  background-color: #16161a;
+  background-image: 
+    linear-gradient(45deg, #111 25%, transparent 25%), 
+    linear-gradient(-45deg, #111 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #111 75%), 
+    linear-gradient(-45deg, transparent 75%, #111 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
 
 #photoCanvas {
   max-width: 100%;
   max-height: 100%;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-  background-image: linear-gradient(45deg, #1d1d22 25%, transparent 25%), 
-                    linear-gradient(-45deg, #1d1d22 25%, transparent 25%), 
-                    linear-gradient(45deg, transparent 75%, #1d1d22 75%), 
-                    linear-gradient(-45deg, transparent 75%, #1d1d22 75%);
-  background-size: 16px 16px;
-  background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
   display: none;
+  cursor: none; /* Allows the custom element brushCursor to take visual precedence */
 }
 
-/* Brush Pointer Follower */
+/* Dynamic Interactive Retouch Target Hover Cursor Indicator Ring */
 #brushCursor {
   position: absolute;
-  border: 1px solid rgba(255,255,255,0.8);
-  box-shadow: 0 0 0 1px rgba(0,0,0,0.4), inset 0 0 4px rgba(0,0,0,0.2);
+  border: 1px solid #fff;
   border-radius: 50%;
   pointer-events: none;
   transform: translate(-50%, -50%);
   display: none;
+  box-shadow: 0 0 4px rgba(0,0,0,0.5), inset 0 0 4px rgba(0,0,0,0.5);
   z-index: 10;
 }
 
-/* Empty Placeholder view */
+/* Empty State Onboarding Graphic */
 .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  max-width: 360px;
+  max-width: 400px;
+  z-index: 2;
 }
-
 .sample-frame {
   position: relative;
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 1.5rem;
-  background: var(--bg-panel);
-  border-radius: 20px;
-  border: 1px solid var(--border-color);
+  width: 80px;
+  height: 80px;
+  background-color: var(--bg-panel);
+  border: 2px dashed var(--border);
+  border-radius: 50%;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
 .sample-face {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--accent);
+  border: 3px solid var(--text-muted);
   border-radius: 50%;
-  margin: 20px auto;
 }
+.sample-spark {
+  position: absolute;
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+.sample-spark.a { top: 12px; right: 12px; animation: blink 2s infinite; }
+.sample-spark.b { bottom: 12px; left: 12px; animation: blink 2s infinite 1s; }
 
 .empty-state h2 {
   font-size: 1.1rem;
   font-weight: 500;
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
 }
-
 .empty-state p {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
   line-height: 1.5;
 }
 
-/* Bottom status strip */
+/* Footer Control Strip Layout */
 .bottom-strip {
   height: 48px;
-  border-top: 1px solid var(--border-color);
-  padding: 0 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background-color: var(--bg-sidebar);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  align-items: center;
+  padding: 0 20px;
 }
-
 .compare-meter {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 8px;
   font-size: 0.75rem;
   color: var(--text-muted);
 }
-
 .compare-meter input {
-  width: 120px;
+  flex: 1;
 }
-
 .hint {
   font-size: 0.75rem;
   color: var(--text-muted);
+  text-align: right;
+}
+
+/* ==========================================================================
+   5. Keyframe Animation Utilities
+   ========================================================================== */
+@keyframes blink {
+  0%, 100% { opacity: 0.3; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
 }
