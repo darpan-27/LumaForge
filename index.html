@@ -24,6 +24,23 @@
           <small>Drop in a portrait, product shot, or social image</small>
         </label>
 
+        <section class="panel bg-remover-panel">
+          <div class="panel-title">
+            <h2>AI Background</h2>
+            <span id="bgStatus" class="status-badge">Ready</span>
+          </div>
+          <div class="tool-action-block">
+            <button id="removeBgButton" class="primary-button full-width" disabled>
+              <span class="icon">✂</span> Remove Background
+            </button>
+          </div>
+          <label class="slider-row">
+            <span>Edge Feather</span>
+            <input id="bgFeather" type="range" min="0" max="20" value="2" disabled />
+            <output id="bgFeatherValue">2</output>
+          </label>
+        </section>
+
         <section class="panel">
           <div class="panel-title">
             <h2>Smart Presets</h2>
