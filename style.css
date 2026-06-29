@@ -2,17 +2,18 @@
    1. Design System & Base Setup
    ========================================================================== */
 :root {
-  --bg-app: #121214;
-  --bg-sidebar: #1a1a1e;
-  --bg-panel: #222227;
-  --bg-input: #2d2d34;
-  --accent: #5c6bc0;
-  --accent-hover: #7986cb;
-  --text-main: #e2e2e9;
-  --text-muted: #8a8a93;
-  --border: #2e2e35;
-  --radius: 8px;
-  --radius-sm: 4px;
+  --bg-app: #0b0b0d;
+  --bg-sidebar: #131317;
+  --bg-panel: #1c1c24;
+  --bg-input: #252530;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-glow: rgba(99, 102, 241, 0.35);
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --border: #2a2a35;
+  --radius: 12px;
+  --radius-sm: 6px;
 }
 
 * {
@@ -26,16 +27,17 @@ body {
   background-color: var(--bg-app);
   color: var(--text-main);
   height: 100vh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
 /* ==========================================================================
-   2. App Layout Shell
+   2. App Layout Shell (Responsive Grid)
    ========================================================================== */
 .app-shell {
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 340px 1fr;
   height: 100vh;
   width: 100vw;
 }
@@ -48,71 +50,77 @@ body {
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 20px;
+  gap: 20px;
+  padding: 24px;
   overflow-y: auto;
+  z-index: 5;
 }
 
 /* Brand Header */
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 14px;
+  margin-bottom: 4px;
 }
 .brand-mark {
-  background: linear-gradient(135deg, #818cf8, #5c6bc0);
+  background: linear-gradient(135deg, #818cf8, var(--accent));
   color: #fff;
   font-weight: 800;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
+  box-shadow: 0 0 15px var(--accent-glow);
 }
 .brand h1 {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 .brand p {
   font-size: 0.75rem;
   color: var(--text-muted);
+  margin-top: 2px;
 }
 
 /* Drag-and-Drop Image Input Area */
 .upload-zone {
   border: 2px dashed var(--border);
-  background-color: rgba(255, 255, 255, 0.02);
+  background-color: rgba(255, 255, 255, 0.01);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: 24px;
   text-align: center;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  transition: border-color 0.2s, background-color 0.2s;
+  gap: 8px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .upload-zone:hover {
   border-color: var(--accent);
-  background-color: rgba(92, 107, 192, 0.05);
+  background-color: rgba(99, 102, 241, 0.04);
+  transform: translateY(-2px);
 }
 .upload-zone input[type="file"] {
   display: none;
 }
 .upload-icon {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   color: var(--text-muted);
 }
 .upload-zone strong {
   font-size: 0.85rem;
+  font-weight: 600;
 }
 .upload-zone small {
   font-size: 0.75rem;
   color: var(--text-muted);
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 /* Core Settings Control Panels */
@@ -120,10 +128,11 @@ body {
   background-color: var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .panel-title {
   display: flex;
@@ -131,37 +140,41 @@ body {
   align-items: center;
 }
 .panel-title h2 {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   color: var(--text-muted);
 }
 .status-badge {
   font-size: 0.7rem;
+  font-weight: 600;
   background-color: var(--bg-input);
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 10px;
+  border-radius: 20px;
   color: var(--text-muted);
+  letter-spacing: 0.02em;
 }
 .status-badge.processing {
-  background-color: rgba(234, 179, 8, 0.2);
-  color: #fef08a;
+  background-color: rgba(234, 179, 8, 0.15);
+  color: #fde047;
+  box-shadow: 0 0 10px rgba(234, 179, 8, 0.1);
 }
 .status-badge.active {
-  background-color: rgba(34, 197, 94, 0.2);
-  color: #bbf7d0;
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.1);
 }
 
-/* Preset Options & Retouch Toolbar Layout grids */
+/* Preset Options & Retouch Toolbar */
 .preset-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 .tool-row {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 .tool-action-block {
   width: 100%;
@@ -170,18 +183,20 @@ body {
 /* Standardized Sliders */
 .slider-row {
   display: grid;
-  grid-template-columns: 70px 1fr 30px;
+  grid-template-columns: 80px 1fr 35px;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.8rem;
 }
 .slider-row span {
   color: var(--text-main);
+  font-weight: 500;
 }
 .slider-row output {
   text-align: right;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 input[type="range"] {
   -webkit-appearance: none;
@@ -189,20 +204,22 @@ input[type="range"] {
   width: 100%;
   background: var(--bg-input);
   height: 6px;
-  border-radius: 3px;
+  border-radius: 10px;
   outline: none;
 }
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--text-main);
   cursor: pointer;
-  transition: transform 0.1s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  transition: transform 0.1s, background-color 0.1s;
 }
 input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  transform: scale(1.25);
+  background: var(--accent);
 }
 input[type="range"]:disabled::-webkit-slider-thumb {
   background: var(--border);
@@ -214,18 +231,20 @@ input[type="range"]:disabled::-webkit-slider-thumb {
 button {
   font-family: inherit;
   font-size: 0.8rem;
+  font-weight: 550;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;
   background-color: var(--bg-input);
   color: var(--text-main);
-  transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+  transition: all 0.2s ease;
 }
 button:hover:not(:disabled) {
   background-color: var(--border);
+  color: #fff;
 }
 button:disabled {
-  opacity: 0.4;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 .full-width {
@@ -234,35 +253,45 @@ button:disabled {
 .primary-button {
   background-color: var(--accent);
   color: #fff;
-  padding: 8px 14px;
-  font-weight: 500;
+  padding: 10px 16px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 .primary-button:hover:not(:disabled) {
   background-color: var(--accent-hover);
+  box-shadow: 0 6px 16px var(--accent-glow);
 }
 .text-button {
   background: transparent;
   color: var(--accent);
-  padding: 2px 6px;
+  padding: 4px 8px;
 }
 .text-button:hover:not(:disabled) {
-  background: rgba(92, 107, 192, 0.1);
+  background: rgba(99, 102, 241, 0.08);
 }
 .preset-button {
-  padding: 8px;
+  padding: 10px;
   text-align: center;
+  border: 1px solid var(--border);
+}
+.preset-button:hover:not(:disabled) {
+  border-color: var(--accent);
 }
 .icon-button {
   flex: 1;
-  height: 32px;
+  height: 36px;
   font-size: 1.1rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid var(--border);
 }
 .icon-button.active {
   background-color: var(--accent);
   color: white;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
 }
 
 /* ==========================================================================
@@ -273,17 +302,18 @@ button:disabled {
   flex-direction: column;
   height: 100vh;
   position: relative;
+  background-color: var(--bg-app);
 }
 
 /* Header Action-Bar */
 .topbar {
-  height: 56px;
+  height: 60px;
   background-color: var(--bg-sidebar);
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 .status {
   display: flex;
@@ -291,7 +321,7 @@ button:disabled {
 }
 .status strong {
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 .status span {
   font-size: 0.75rem;
@@ -299,10 +329,10 @@ button:disabled {
 }
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 .toolbar-button {
-  padding: 6px 12px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -317,36 +347,37 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  /* Visual checkerboard grid layout backdrop pattern for isolated transparent PNG masks */
-  background-color: #16161a;
+  padding: 32px;
+  background-color: #0f0f12;
   background-image: 
-    linear-gradient(45deg, #111 25%, transparent 25%), 
-    linear-gradient(-45deg, #111 25%, transparent 25%), 
-    linear-gradient(45deg, transparent 75%, #111 75%), 
-    linear-gradient(-45deg, transparent 75%, #111 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+    linear-gradient(45deg, #070709 25%, transparent 25%), 
+    linear-gradient(-45deg, #070709 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #070709 75%), 
+    linear-gradient(-45deg, transparent 75%, #070709 75%);
+  background-size: 24px 24px;
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
 }
 
 #photoCanvas {
   max-width: 100%;
   max-height: 100%;
-  box-shadow: 0 12px 36px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
   display: none;
-  cursor: none; /* Allows the custom element brushCursor to take visual precedence */
+  cursor: none;
+  transition: transform 0.15s cubic-bezier(0.1, 0.8, 0.25, 1);
+  border-radius: 4px;
 }
 
-/* Dynamic Interactive Retouch Target Hover Cursor Indicator Ring */
+/* Dynamic Interactive Retouch Target Hover Cursor Ring */
 #brushCursor {
   position: absolute;
-  border: 1px solid #fff;
+  border: 1.5px solid #fff;
   border-radius: 50%;
   pointer-events: none;
   transform: translate(-50%, -50%);
   display: none;
-  box-shadow: 0 0 4px rgba(0,0,0,0.5), inset 0 0 4px rgba(0,0,0,0.5);
-  z-index: 10;
+  box-shadow: 0 0 6px rgba(0,0,0,0.6), inset 0 0 4px rgba(0,0,0,0.4);
+  z-index: 999;
 }
 
 /* Empty State Onboarding Graphic */
@@ -360,55 +391,55 @@ button:disabled {
 }
 .sample-frame {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 84px;
+  height: 84px;
   background-color: var(--bg-panel);
   border: 2px dashed var(--border);
   border-radius: 50%;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .sample-face {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: 3px solid var(--text-muted);
   border-radius: 50%;
 }
 .sample-spark {
   position: absolute;
   color: var(--accent);
-  font-size: 1.2rem;
+  font-size: 1.3rem;
 }
 .sample-spark.a { top: 12px; right: 12px; animation: blink 2s infinite; }
 .sample-spark.b { bottom: 12px; left: 12px; animation: blink 2s infinite 1s; }
 
 .empty-state h2 {
-  font-size: 1.1rem;
-  font-weight: 500;
-  margin-bottom: 8px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
 }
 .empty-state p {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* Footer Control Strip Layout */
 .bottom-strip {
-  height: 48px;
+  height: 52px;
   background-color: var(--bg-sidebar);
   border-top: 1px solid var(--border);
   display: grid;
-  grid-template-columns: 320px 1fr;
+  grid-template-columns: 340px 1fr;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 24px;
 }
 .compare-meter {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.75rem;
   color: var(--text-muted);
 }
@@ -419,6 +450,7 @@ button:disabled {
   font-size: 0.75rem;
   color: var(--text-muted);
   text-align: right;
+  font-weight: 500;
 }
 
 /* ==========================================================================
@@ -427,4 +459,59 @@ button:disabled {
 @keyframes blink {
   0%, 100% { opacity: 0.3; transform: scale(0.9); }
   50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ==========================================================================
+   6. Media Queries - Mobile Responsive Architecture (800px or less)
+   ========================================================================== */
+@media (max-width: 800px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto; /* Canvas top, Sidebar controls bottom */
+    height: 100vh;
+  }
+
+  .workspace {
+    height: auto;
+    flex: 1;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-top: 1px solid var(--border);
+    max-height: 40vh; /* મોબાઇલ યુઝરને સેટિંગ્સ માટે લિમિટેડ સ્ક્રોલિંગ સ્પેસ આપવી */
+    padding: 16px;
+    gap: 14px;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  .brand {
+    display: none; /* મોબાઇલ સ્ટેજ પર કેનવાસ મોટો બતાવવા માટે બ્રાન્ડ હેડર છુપાવવું */
+  }
+
+  .topbar {
+    padding: 0 16px;
+    height: 54px;
+  }
+
+  .canvas-stage {
+    padding: 16px;
+  }
+
+  #photoCanvas {
+    cursor: default; /* મોબાઈલમાં ફિંગર ટચ પ્રોસેસ હોવાથી બ્રશ કર્સર બંધ રાખવું */
+  }
+
+  .bottom-strip {
+    display: none; /* મોબાઇલ સ્ક્રીન સ્પેસ બચાવવા બોટમ સ્ટ્રીપ હાઇડ કરવી */
+  }
+
+  .preset-grid {
+    grid-template-columns: repeat(4, 1fr); /* મોબાઇલ સ્ક્રીનમાં પ્રીસેટ્સ એક આડી લાઈનમાં આવી જશે */
+    overflow-x: auto;
+  }
+
+  .slider-row {
+    grid-template-columns: 70px 1fr 30px;
+  }
 }
