@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Zoom Controls
   const zoomInBtn = document.getElementById('zoomInButton');
   const zoomOutBtn = document.getElementById('zoomOutButton');
+
+  // Undo & Redo Controls
+  const undoButton = document.getElementById('undoButton');
+  const redoButton = document.getElementById('redoButton');
   
   // Background Removal Tool Panel Nodes
   const removeBgButton = document.getElementById('removeBgButton');
@@ -43,6 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Zoom State Variables
   let currentZoom = 1; // 1 = 100% ઓરિજિનલ સાઇઝ
   const ZOOM_SPEED = 0.1; // એક ક્લિક પર કેટલું ઝૂમ કરવું
+
+  // Undo & Redo State History Stacks
+  let undoStack = [];
+  let redoStack = [];
+  const MAX_HISTORY_STATES = 20; // મેક્સિમમ કેટલા સ્ટેપ્સ પાછળ જઈ શકાય
 
   // --- 1. Image Import Management Pipeline ---
   imageInput.addEventListener('change', handleFileSelection);
@@ -91,9 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
     emptyState.style.display = 'none';
     canvas.style.display = 'block';
     
-    // નવો ફોટો આવે ત્યારે ઝૂમ લેવલ રીસેટ કરો
+    // નવો ફોટો આવે ત્યારે ઝૂમ અને હિસ્ટ્રી ક્લિયર કરો
     currentZoom = 1;
     applyZoom();
+    
+    undoStack = [];
+    redoStack = [];
+    saveHistoryState(); // પ્રથમ બેઝ સ્ટેટ સેવ કરો
     
     // Enable workflow toolbars
     toggleInteractiveState(true);
@@ -104,20 +117,21 @@ document.addEventListener('DOMContentLoaded', () => {
     interactiveElements.forEach(el => {
       if (el) el.disabled = !isEnabled;
     });
+    updateUndoRedoButtons();
   }
 
   // --- 2. Zoom In & Zoom Out Logic ---
   zoomInBtn.addEventListener('click', () => {
     if (!loadedImage) return;
     currentZoom += ZOOM_SPEED;
-    if (currentZoom > 3) currentZoom = 3; // મેક્સિમમ ૩૦૦% ઝૂમ
+    if (currentZoom > 3) currentZoom = 3; 
     applyZoom();
   });
 
   zoomOutBtn.addEventListener('click', () => {
     if (!loadedImage) return;
     currentZoom -= ZOOM_SPEED;
-    if (currentZoom < 0.5) currentZoom = 0.5; // મિનિમમ ૫૦% ઝૂમ આઉટ
+    if (currentZoom < 0.5) currentZoom = 0.5; 
     applyZoom();
   });
 
@@ -125,22 +139,71 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.style.transform = `scale(${currentZoom})`;
   }
 
-  // --- 3. AI Background Removal Pipeline Execution ---
+  // --- 3. Undo & Redo System Engine ---
+  function saveHistoryState() {
+    if (undoStack.length >= MAX_HISTORY_STATES) {
+      undoStack.shift(); // જૂની સ્ટેટ કાઢી નાખો
+    }
+    // કેનવાસનો હાલનો ફોટો ડેટા યુઆરએલ તરીકે સેવ કરો
+    undoStack.push(canvas.toDataURL());
+    // જ્યારે પણ નવી એક્શન થાય ત્યારે રેડુ સ્ટેક ખાલી થાય
+    redoStack = [];
+    updateUndoRedoButtons();
+  }
+
+  undoButton.addEventListener('click', () => {
+    if (undoStack.length <= 1) return; // જો માત્ર ઓરિજિનલ સ્ટેટ હોય તો અટકો
+
+    const currentState = undoStack.pop();
+    redoStack.push(currentState);
+    
+    const previousStateImg = undoStack[undoStack.length - 1];
+    restoreCanvasFromDataURL(previousStateImg);
+  });
+
+  redoButton.addEventListener('click', () => {
+    if (redoStack.length === 0) return;
+
+    const nextStateImg = redoStack.pop();
+    undoStack.push(nextStateImg);
+    restoreCanvasFromDataURL(nextStateImg);
+  });
+
+  function restoreCanvasFromDataURL(dataUrl) {
+    const img = new Image();
+    img.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      updateUndoRedoButtons();
+    };
+    img.src = dataUrl;
+  }
+
+  function updateUndoRedoButtons() {
+    if (!loadedImage) {
+      undoButton.disabled = true;
+      redoButton.disabled = true;
+      return;
+    }
+    undoButton.disabled = undoStack.length <= 1;
+    redoButton.disabled = redoStack.length === 0;
+  }
+
+  // --- 4. AI Background Removal Pipeline Execution ---
   removeBgButton.addEventListener('click', async () => {
     if (!loadedImage) return;
 
-    // Update state to Processing
     bgStatus.textContent = 'AI Processing...';
     bgStatus.className = 'status-badge processing';
     removeBgButton.disabled = true;
 
     try {
-      // AI મોડલ રન કરીને બેકગ્રાઉન્ડ રીમુવ કરો
       await isolateSubjectForeground();
       
-      // Update state to complete
       bgStatus.textContent = 'Removed';
       bgStatus.className = 'status-badge active';
+      
+      saveHistoryState(); // AI પ્રોસેસ પત્યા પછી સ્ટેટ સેવ કરો
     } catch (error) {
       console.error("AI Background Removal Error: ", error);
       bgStatus.textContent = 'Error';
@@ -158,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
       throw new Error("BodyPix library is not loaded. Check HTML scripts.");
     }
 
-    // જો ગ્લોબલ વિન્ડોમાં Body-Pix મોડલ લોડ ન થયું હોય તો તેને લોડ કરો
     if (!window.bodyPixModel) {
       bgStatus.textContent = 'Loading AI Model...';
       window.bodyPixModel = await bodyPix.load({
@@ -169,37 +231,31 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // કેનવાસ પરથી માણસ (Person) ને સેગ્મેન્ટ (ડિટેક્ટ) કરો
     const segmentation = await window.bodyPixModel.segmentPerson(canvas, {
       internalResolution: 'medium',
-      segmentationThreshold: 0.7 // ચોકસાઈનો દર
+      segmentationThreshold: 0.7 
     });
 
-    // ઓરિજિનલ ઈમેજનો પિક્સેલ ડેટા લો
     const imgData = ctx.getImageData(0, 0, w, h);
     const data = imgData.data;
     
-    // લૂપ ચલાવીને જે ભાગ માણસનો નથી (0 છે), તેને ટ્રાન્સપરન્ટ (0 વિઝિબિલિટી) કરી દો
     for (let i = 0; i < segmentation.data.length; i++) {
       const isPerson = segmentation.data[i] === 1;
-      const alphaIndex = i * 4 + 3; // 4થો ભાગ એટલે Alpha Channel
+      const alphaIndex = i * 4 + 3;
 
       if (!isPerson) {
-        data[alphaIndex] = 0; // માણસ સિવાયનું બધું જ ગાયબ (Transparent)
+        data[alphaIndex] = 0; 
       }
     }
     
-    // સુધારેલો પિક્સેલ ડેટા પાછો કેનવાસ પર મૂકો
     ctx.putImageData(imgData, 0, 0);
   }
 
-  // Handle Feather Slider numeric output updates
   bgFeather.addEventListener('input', (e) => {
     bgFeatherValue.textContent = e.target.value;
   });
 
-  // --- 4. Adjustment Sliders Integration ---
-  // Sync slider output elements and trigger generic re-render flags
+  // --- 5. Adjustment Sliders Integration ---
   adjustmentSliders.forEach(slider => {
     const outputField = slider.nextElementSibling;
     slider.addEventListener('input', (e) => {
@@ -208,12 +264,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       applyAdjustmentFilters();
     });
+
+    // જ્યારે યુઝર સ્લાઇડર ફેરવીને માઉસ છોડે (change event) ત્યારે જ સ્ટેટ સેવ કરો
+    slider.addEventListener('change', () => {
+      saveHistoryState();
+    });
   });
 
   function applyAdjustmentFilters() {
     if (!loadedImage) return;
     
-    // Clear frame base back down before compiling compound configurations
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
     
@@ -244,7 +304,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (filterString.trim() !== '') {
       ctx.filter = filterString;
       ctx.drawImage(canvas, 0, 0);
-      ctx.filter = 'none'; // Clear state architecture properties
+      ctx.filter = 'none'; 
     }
   }
 
@@ -256,10 +316,12 @@ document.addEventListener('DOMContentLoaded', () => {
         outputField.textContent = '0';
       }
     });
-    if (loadedImage) initializeCanvasContext();
+    if (loadedImage) {
+      initializeCanvasContext();
+    }
   });
 
-  // --- 5. Retouch Toolbar Controls Selection Map Routing ---
+  // --- 6. Retouch Toolbar Controls Selection Map Routing ---
   toolButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       toolButtons.forEach(b => b.classList.remove('active'));
@@ -269,7 +331,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Interactive UI adjustments value sync tracking updates
   brushSizeInput.addEventListener('input', (e) => {
     brushSizeValue.textContent = e.target.value;
     updateBrushCursorSize();
@@ -285,7 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
     brushCursor.style.height = `${size}px`;
   }
 
-  // --- 6. Custom Canvas Brush Retouch System Interface Engine Hooks ---
+  // --- 7. Custom Canvas Brush Retouch System Interface Engine Hooks ---
   canvas.addEventListener('mouseenter', () => {
     brushCursor.style.display = 'block';
     updateBrushCursorSize();
@@ -297,8 +358,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   canvas.addEventListener('mousemove', (e) => {
     const rect = canvas.getBoundingClientRect();
-    
-    // કોર્ડિનેટ્સને currentZoom વડે ભાગવાથી ઝૂમ કરેલા ફોટા પર પણ બ્રશ એકદમ સાચી જગ્યાએ ચાલશે
     const x = (e.clientX - rect.left) / currentZoom;
     const y = (e.clientY - rect.top) / currentZoom;
     
@@ -319,7 +378,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   window.addEventListener('mouseup', () => {
-    isDrawing = false;
+    if (isDrawing) {
+      isDrawing = false;
+      saveHistoryState(); // બ્રશ ફેરવીને માઉસ છોડીએ ત્યારે સ્ટેટ સેવ થશે
+    }
   });
 
   function executeBrushStroke(x, y) {
@@ -339,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
       ctx.globalAlpha = 0.1;
       ctx.drawImage(canvas, x - 2, y - 2, radius, radius, x - 2, y - 2, radius, radius);
     } else if (activeTool === 'heal') {
-      // Heal samples neighboring context pixels safely nearby shifts
       ctx.globalAlpha = 0.3;
       ctx.drawImage(canvas, x + 15, y + 15, radius * 2, radius * 2, x - radius, y - radius, radius * 2, radius * 2);
     }
@@ -347,13 +408,5 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.restore();
   }
 
-  // --- 7. File Export Infrastructure Trigger ---
-  downloadBtn.addEventListener('click', () => {
-    if (!canvas) return;
-    const targetDataUrl = canvas.toDataURL('image/png');
-    const transferAnchor = document.createElement('a');
-    transferAnchor.download = 'lumaforge-retouched-export.png';
-    transferAnchor.href = targetDataUrl;
-    transferAnchor.click();
-  });
-});
+  // --- 8. File Export Infrastructure Trigger ---
+  downloadBtn.addEventListener
