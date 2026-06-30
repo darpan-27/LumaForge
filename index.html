@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LumaForge Retouch Studio</title>
     <link rel="stylesheet" href="style.css">
-
+    
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
   </head>
@@ -30,18 +30,13 @@
         <section class="panel bg-remover-panel">
           <div class="panel-title">
             <h2>AI Background</h2>
-            <span id="bgStatus" class="status-badge">Ready</span>
+            <span id="bgStatus" class="status-badge loading">Loading AI...</span>
           </div>
           <div class="tool-action-block">
             <button id="removeBgButton" class="primary-button full-width" disabled>
               <span class="icon">✂</span> Remove Background
             </button>
           </div>
-          <label class="slider-row">
-            <span>Edge Feather</span>
-            <input id="bgFeather" type="range" min="0" max="20" value="2" disabled />
-            <output id="bgFeatherValue">2</output>
-          </label>
         </section>
 
         <section class="panel">
@@ -53,7 +48,7 @@
             <button class="preset-button" data-preset="clean">Clean</button>
             <button class="preset-button" data-preset="portrait">Portrait</button>
             <button class="preset-button" data-preset="cinema">Cinema</button>
-            <button class="preset-button" data-preset="product">Product</button>
+            <button class="preset-button" data-preset="vintage">Vintage</button>
           </div>
         </section>
 
@@ -70,57 +65,67 @@
           </div>
 
           <label class="slider-row">
-            <span>Brush</span>
-            <input id="brushSize" type="range" min="8" max="90" value="32" />
+            <span>Brush Size</span>
+            <input id="brushSize" type="range" min="8" max="150" value="32" />
             <output id="brushSizeValue">32</output>
-          </label>
-
-          <label class="slider-row">
-            <span>Strength</span>
-            <input id="brushStrength" type="range" min="5" max="100" value="45" />
-            <output id="brushStrengthValue">45</output>
           </label>
         </section>
 
         <section class="panel adjustments">
           <div class="panel-title">
-            <h2>Adjustments</h2>
+            <h2>Adjustments & Color</h2>
             <button id="resetAdjustments" class="text-button">Reset</button>
           </div>
 
           <label class="slider-row">
             <span>Exposure</span>
-            <input data-adjust="exposure" type="range" min="-80" max="80" value="0" />
+            <input data-adjust="exposure" type="range" min="-100" max="100" value="0" />
             <output>0</output>
           </label>
-
           <label class="slider-row">
             <span>Contrast</span>
-            <input data-adjust="contrast" type="range" min="-80" max="80" value="0" />
+            <input data-adjust="contrast" type="range" min="-100" max="100" value="0" />
             <output>0</output>
           </label>
-
           <label class="slider-row">
             <span>Saturation</span>
-            <input data-adjust="saturation" type="range" min="-80" max="80" value="0" />
+            <input data-adjust="saturation" type="range" min="-100" max="100" value="0" />
             <output>0</output>
           </label>
+          
+          <hr class="panel-divider">
 
           <label class="slider-row">
-            <span>Warmth</span>
-            <input data-adjust="warmth" type="range" min="-80" max="80" value="0" />
+            <span>Warmth (Temp)</span>
+            <input data-adjust="warmth" type="range" min="-100" max="100" value="0" />
             <output>0</output>
           </label>
-
           <label class="slider-row">
-            <span>Clarity</span>
-            <input data-adjust="clarity" type="range" min="-40" max="80" value="0" />
+            <span>Tint</span>
+            <input data-adjust="tint" type="range" min="-100" max="100" value="0" />
             <output>0</output>
           </label>
+          <label class="slider-row">
+            <span>Hue</span>
+            <input data-adjust="hue" type="range" min="-180" max="180" value="0" />
+            <output>0</output>
+          </label>
+          
+          <hr class="panel-divider">
 
           <label class="slider-row">
-            <span>Vignette</span>
-            <input data-adjust="vignette" type="range" min="0" max="80" value="0" />
+            <span style="color: #ff6b6b">Red Channel</span>
+            <input data-adjust="red" type="range" min="-50" max="50" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span style="color: #51cf66">Green Channel</span>
+            <input data-adjust="green" type="range" min="-50" max="50" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span style="color: #339af0">Blue Channel</span>
+            <input data-adjust="blue" type="range" min="-50" max="50" value="0" />
             <output>0</output>
           </label>
         </section>
@@ -134,45 +139,32 @@
           </div>
 
           <div class="actions">
-            <button id="beforeAfter" class="toolbar-button" disabled>Before</button>
-            <button id="undoButton" class="toolbar-button" disabled title="Undo">↶</button>
-            <button id="redoButton" class="toolbar-button" disabled title="Redo">↷</button>
-            
-            <button id="zoomOutButton" class="toolbar-button" disabled title="Zoom Out">➖</button>
-            <button id="zoomInButton" class="toolbar-button" disabled title="Zoom In">➕</button>
-            
-            <button id="downloadButton" class="primary-button" disabled>Export</button>
+            <button id="undoButton" class="toolbar-button" disabled title="Undo">↶ Undo</button>
+            <button id="redoButton" class="toolbar-button" disabled title="Redo">↷ Redo</button>
+            <button id="downloadButton" class="primary-button" disabled>Export Photo</button>
           </div>
         </header>
 
         <div class="canvas-stage" id="dropZone">
           <div class="empty-state" id="emptyState">
-            <div class="sample-frame">
-              <div class="sample-face"></div>
-              <div class="sample-spark a"></div>
-              <div class="sample-spark b"></div>
-            </div>
-
             <h2>Retouch a photo in your browser</h2>
-            <p>Load an image, brush over areas to polish, tune the look, then export a finished JPEG.</p>
+            <p>Load an image, brush over areas to polish, tune the color, then export.</p>
           </div>
-
-          <canvas id="photoCanvas"></canvas>
-          <div id="brushCursor"></div>
+          <div class="canvas-wrapper">
+            <canvas id="photoCanvas"></canvas>
+            <div id="brushCursor"></div>
+          </div>
         </div>
 
         <footer class="bottom-strip">
           <div class="compare-meter">
-            <span>Original</span>
-            <input id="compareSlider" type="range" min="0" max="100" value="100" disabled />
-            <span class="edited-label">Edited</span>
+            <span>Toggle Original</span>
+            <input id="compareSlider" type="range" min="0" max="1" value="0" disabled />
           </div>
-
-          <div class="hint" id="hint">Tip: the heal brush samples nearby pixels to remove small marks.</div>
+          <div class="hint" id="hint">Tip: Use the adjustment sliders to fine-tune your color grading.</div>
         </footer>
       </section>
     </main>
-
     <script src="app.js"></script>
   </body>
 </html>
