@@ -1,16 +1,17 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LumaForge Retouch Studio</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css" />
     
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
   </head>
   <body>
     <main class="app-shell">
+      
       <aside class="sidebar">
         <div class="brand">
           <div class="brand-mark">LF</div>
@@ -49,6 +50,11 @@
             <button class="preset-button" data-preset="portrait">Portrait</button>
             <button class="preset-button" data-preset="cinema">Cinema</button>
             <button class="preset-button" data-preset="vintage">Vintage</button>
+            <button class="preset-button" data-preset="vivid">HDR / Vivid</button>
+            <button class="preset-button" data-preset="moody">Moody Noir</button>
+            <button class="preset-button" data-preset="warm">Warm Glow</button>
+            <button class="preset-button" data-preset="cool">Cool Tech</button>
+            <button class="preset-button" data-preset="matte">Soft Matte</button>
           </div>
         </section>
 
@@ -93,7 +99,7 @@
             <output>0</output>
           </label>
           
-          <hr class="panel-divider">
+          <hr class="panel-divider" />
 
           <label class="slider-row">
             <span>Warmth (Temp)</span>
@@ -111,7 +117,7 @@
             <output>0</output>
           </label>
           
-          <hr class="panel-divider">
+          <hr class="panel-divider" />
 
           <label class="slider-row">
             <span style="color: #ff6b6b">Red Channel</span>
@@ -134,7 +140,6 @@
           <p>&copy; 2026 LumaForge Retouch Studio</p>
           <p>Developed by <strong>Darpan Prajapati</strong></p>
         </div>
-
       </aside>
 
       <section class="workspace">
@@ -144,11 +149,13 @@
             <span id="imageMeta">Open an image to begin</span>
           </div>
 
-      <div class="actions">
-  <button id="undoButton" class="toolbar-button" disabled title="Undo">↶ Undo</button>
-  <button id="redoButton" class="toolbar-button" disabled title="Redo">↷ Redo</button>
-  <button id="downloadButton" class="primary-button" disabled>Export Photo</button>
-     </div>
+          <div class="actions">
+            <button id="undoButton" class="toolbar-button" disabled title="Undo">↶ Undo</button>
+            <button id="redoButton" class="toolbar-button" disabled title="Redo">↷ Redo</button>
+            <button id="downloadButton" class="primary-button" disabled>Export Photo</button>
+          </div>
+        </header>
+
         <div class="canvas-stage" id="dropZone">
           <div class="empty-state" id="emptyState">
             <h2>Retouch a photo in your browser</h2>
@@ -168,8 +175,9 @@
           <div class="hint" id="hint">Tip: Use the adjustment sliders to fine-tune your color grading.</div>
         </footer>
       </section>
+
     </main>
-    <script src="app.js"></script>
     
+    <script src="app.js"></script>
   </body>
 </html>
