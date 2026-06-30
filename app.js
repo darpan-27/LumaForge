@@ -57,12 +57,33 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 1. Image Import Management Pipeline ---
   imageInput.addEventListener('change', handleFileSelection);
 
+  // Drag and Drop implementation
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      processFile(file);
+    }
+  });
+
   function handleFileSelection(e) {
     const file = e.target.files[0];
     if (!file) return;
+    processFile(file);
+  }
 
+  function processFile(file) {
     fileNameDisplay.textContent = file.name;
-    
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -202,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 4. Smart Presets & Auto Enhance Logic ---
   autoEnhanceBtn.addEventListener('click', () => {
     if (!loadedImage) return;
-    // Auto Enhance માટે સ્લાઇડર્સ સેટ કરો
     updateSliderValue('exposure', 15);
     updateSliderValue('contrast', 10);
     updateSliderValue('saturation', 8);
@@ -217,10 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!loadedImage) return;
       const preset = button.dataset.preset;
       
-      // પહેલા બધા સ્લાઇડર્સ શૂન્ય કરો
       resetSlidersUI();
 
-      // અલગ અલગ પ્રીસેટ મુજબ વેલ્યુ સેટ કરવી
       switch (preset) {
         case 'clean':
           updateSliderValue('exposure', 10);
@@ -323,6 +341,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     ctx.putImageData(imgData, 0, 0);
+
+    // Apply basic feathering if set
+    const featherValue = parseInt(bgFeather.value, 10);
+    if (featherValue > 0) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.filter = `blur(${featherValue / 2}px)`;
+      ctx.drawImage(canvas, 0, 0);
+      ctx.restore();
+    }
   }
 
   bgFeather.addEventListener('input', (e) => {
@@ -392,9 +420,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (warmthValue !== 0) {
       ctx.save();
       if (warmthValue > 0) {
-        ctx.fillStyle = `rgba(255, 165, 0, ${warmthValue / 400})`; // Orange tint for warmth
+        ctx.fillStyle = `rgba(255, 165, 0, ${warmthValue / 400})`; // Orange tint
       } else {
-        ctx.fillStyle = `rgba(0, 0, 255, ${Math.abs(warmthValue) / 400})`; // Blue tint for cool
+        ctx.fillStyle = `rgba(0, 0, 255, ${Math.abs(warmthValue) / 400})`; // Blue tint
       }
       ctx.globalCompositeOperation = 'color';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -440,26 +468,33 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   function updateBrushCursorSize() {
-    const size = brushSizeInput.value;
+    const size = parseInt(brushSizeInput.value, 10) * currentZoom;
     brushCursor.style.width = `${size}px`;
     brushCursor.style.height = `${size}px`;
   }
 
   // --- 8. Custom Canvas Brush Retouch System Hooks ---
-  canvas.addEventListener('mouseenter', () => {
-    brushCursor.style.display = 'block';
-    updateBrushCursorSize();
+  const canvasStage = document.getElementById('dropZone');
+
+  canvasStage.addEventListener('mouseenter', () => {
+    if (loadedImage) {
+      brushCursor.style.display = 'block';
+      updateBrushCursorSize();
+    }
   });
 
-  canvas.addEventListener('mouseleave', () => {
+  canvasStage.addEventListener('mouseleave', () => {
     brushCursor.style.display = 'none';
   });
 
-  canvas.addEventListener('mousemove', (e) => {
+  canvasStage.addEventListener('mousemove', (e) => {
+    if (!loadedImage) return;
+
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX - rect.left) / currentZoom;
     const y = (e.clientY - rect.top) / currentZoom;
     
+    // Position cursor center with client mouse alignment
     brushCursor.style.left = `${e.clientX}px`;
     brushCursor.style.top = `${e.clientY}px`;
     
@@ -486,23 +521,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function executeBrushStroke(x, y) {
     const radius = parseInt(brushSizeInput.value, 10) / 2;
+    const strength = parseInt(brushStrengthInput.value, 10) / 100;
+
     ctx.save();
     ctx.beginPath();
     ctx.arc(x, y, radius, 0, Math.PI * 2);
     ctx.clip();
     
     if (activeTool === 'brighten') {
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillStyle = `rgba(255,255,255,${0.15 * strength})`;
       ctx.fill();
     } else if (activeTool === 'darken') {
-      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fillStyle = `rgba(0,0,0,${0.15 * strength})`;
       ctx.fill();
     } else if (activeTool === 'smooth') {
-      ctx.globalAlpha = 0.1;
-      ctx.drawImage(canvas, x - 2, y - 2, radius, radius, x - 2, y - 2, radius, radius);
+      ctx.globalAlpha = 0.2 * strength;
+      // Fast programmatic approximation of a box blur blend locally
+      ctx.drawImage(canvas, x - 2, y - 2, radius, radius, x - 1, y - 1, radius, radius);
     } else if (activeTool === 'heal') {
-      ctx.globalAlpha = 0.3;
-      ctx.drawImage(canvas, x + 15, y + 15, radius * 2, radius * 2, x - radius, y - radius, radius * 2, radius * 2);
+      ctx.globalAlpha = strength;
+      // Proximally sample context offset pixels to patch area
+      ctx.drawImage(canvas, x + 16, y + 16, radius * 2, radius * 2, x - radius, y - radius, radius * 2, radius * 2);
     }
     
     ctx.restore();
