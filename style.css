@@ -111,6 +111,20 @@ body {
 .status-badge.ready { color: #51cf66; border-color: #51cf66; }
 .status-badge.loading { color: #fcc419; border-color: #fcc419; }
 
+/* Developer Footer */
+.sidebar-footer {
+  margin-top: auto; /* Pushes the footer to the very bottom */
+  padding-top: 20px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.sidebar-footer strong {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
 /* Buttons */
 button {
   cursor: pointer; border: none; outline: none; border-radius: 4px; font-size: 13px; font-weight: 500;
