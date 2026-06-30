@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LumaForge Retouch Studio</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">LF</div>
+          <div>
+            <h1>LumaForge</h1>
+            <p>AI-style photo retouching studio</p>
+          </div>
+        </div>
+
+        <label class="upload-zone" for="imageInput">
+          <input id="imageInput" type="file" accept="image/*" />
+          <span class="upload-icon">+</span>
+          <strong>Open photo</strong>
+        </label>
+
+        <section class="panel">
+          <div class="panel-title"><h2>Passport Maker</h2></div>
+          <div class="passport-grid">
+            <button class="passport-btn" onclick="applyPassportBackground('white')">White BG</button>
+            <button class="passport-btn" onclick="applyPassportBackground('blue')">Blue BG</button>
+            <button class="passport-btn" onclick="cropToPassport()">Crop 3.5x4.5</button>
+            <button class="passport-btn" onclick="downloadPrintSheet()">Print Sheet</button>
+          </div>
+        </section>
+
+        <section class="panel bg-remover-panel">
+          <div class="panel-title"><h2>AI Background</h2><span id="bgStatus" class="status-badge loading">Loading AI...</span></div>
+          <button id="removeBgButton" class="primary-button full-width" disabled>Remove Background</button>
+        </section>
+
+        <section class="sidebar-footer">
+          <p>&copy; 2026 LumaForge Retouch Studio</p>
+          <p>Developed by <strong>Darpan Prajapati</strong></p>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <div class="canvas-stage" id="dropZone">
+          <div class="canvas-wrapper">
+            <canvas id="photoCanvas"></canvas>
+            <div id="brushCursor"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
