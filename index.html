@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LumaForge Retouch Studio</title>
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/body-pix@2.2.0/dist/body-pix.min.js"></script>
   </head>
@@ -23,30 +24,151 @@
           <input id="imageInput" type="file" accept="image/*" />
           <span class="upload-icon">+</span>
           <strong>Open photo</strong>
+          <small>Drop in a portrait, product shot, or social image</small>
         </label>
 
-        <section class="panel">
-          <div class="panel-title"><h2>Passport Maker</h2></div>
-          <div class="passport-grid">
-            <button class="passport-btn" onclick="makePassport('white')">White BG</button>
-            <button class="passport-btn" onclick="makePassport('blue')">Blue BG</button>
-            <button class="passport-btn" onclick="downloadPrintSheet()">Print Sheet</button>
+        <section class="panel bg-remover-panel">
+          <div class="panel-title">
+            <h2>AI Background</h2>
+            <span id="bgStatus" class="status-badge loading">Loading AI...</span>
           </div>
-          <p style="font-size:10px; color:var(--text-muted); margin-top:8px;">*Use after background removal</p>
+          <div class="tool-action-block">
+            <button id="removeBgButton" class="primary-button full-width" disabled>
+              <span class="icon">✂</span> Remove Background
+            </button>
+          </div>
         </section>
 
-        <section class="sidebar-footer">
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Smart Presets</h2>
+            <button id="autoEnhance" class="text-button" disabled>Auto</button>
+          </div>
+          <div class="preset-grid">
+            <button class="preset-button" data-preset="clean">Clean</button>
+            <button class="preset-button" data-preset="portrait">Portrait</button>
+            <button class="preset-button" data-preset="cinema">Cinema</button>
+            <button class="preset-button" data-preset="vintage">Vintage</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-title">
+            <h2>Retouch Brush</h2>
+            <span id="toolName">Heal</span>
+          </div>
+          <div class="tool-row" role="group" aria-label="Retouch tools">
+            <button class="icon-button active" data-tool="heal" title="Heal blemishes">✦</button>
+            <button class="icon-button" data-tool="smooth" title="Smooth skin">≈</button>
+            <button class="icon-button" data-tool="brighten" title="Brighten details">☼</button>
+            <button class="icon-button" data-tool="darken" title="Darken details">◐</button>
+          </div>
+
+          <label class="slider-row">
+            <span>Brush Size</span>
+            <input id="brushSize" type="range" min="8" max="150" value="32" />
+            <output id="brushSizeValue">32</output>
+          </label>
+        </section>
+
+        <section class="panel adjustments">
+          <div class="panel-title">
+            <h2>Adjustments & Color</h2>
+            <button id="resetAdjustments" class="text-button">Reset</button>
+          </div>
+
+          <label class="slider-row">
+            <span>Exposure</span>
+            <input data-adjust="exposure" type="range" min="-100" max="100" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span>Contrast</span>
+            <input data-adjust="contrast" type="range" min="-100" max="100" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span>Saturation</span>
+            <input data-adjust="saturation" type="range" min="-100" max="100" value="0" />
+            <output>0</output>
+          </label>
+          
+          <hr class="panel-divider">
+
+          <label class="slider-row">
+            <span>Warmth (Temp)</span>
+            <input data-adjust="warmth" type="range" min="-100" max="100" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span>Tint</span>
+            <input data-adjust="tint" type="range" min="-100" max="100" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span>Hue</span>
+            <input data-adjust="hue" type="range" min="-180" max="180" value="0" />
+            <output>0</output>
+          </label>
+          
+          <hr class="panel-divider">
+
+          <label class="slider-row">
+            <span style="color: #ff6b6b">Red Channel</span>
+            <input data-adjust="red" type="range" min="-50" max="50" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span style="color: #51cf66">Green Channel</span>
+            <input data-adjust="green" type="range" min="-50" max="50" value="0" />
+            <output>0</output>
+          </label>
+          <label class="slider-row">
+            <span style="color: #339af0">Blue Channel</span>
+            <input data-adjust="blue" type="range" min="-50" max="50" value="0" />
+            <output>0</output>
+          </label>
+        </section>
+
+        <div class="sidebar-footer">
           <p>&copy; 2026 LumaForge Retouch Studio</p>
           <p>Developed by <strong>Darpan Prajapati</strong></p>
-        </section>
+        </div>
+
       </aside>
 
       <section class="workspace">
+        <header class="topbar">
+          <div class="status">
+            <strong id="fileName">No photo loaded</strong>
+            <span id="imageMeta">Open an image to begin</span>
+          </div>
+
+          <div class="actions">
+            <button id="undoButton" class="toolbar-button" disabled title="Undo">↶ Undo</button>
+            <button id="redoButton" class="toolbar-button" disabled title="Redo">↷ Redo</button>
+            <button id="downloadButton" class="primary-button" disabled>Export Photo</button>
+          </div>
+        </header>
+
         <div class="canvas-stage" id="dropZone">
+          <div class="empty-state" id="emptyState">
+            <h2>Retouch a photo in your browser</h2>
+            <p>Load an image, brush over areas to polish, tune the color, then export.</p>
+          </div>
           <div class="canvas-wrapper">
             <canvas id="photoCanvas"></canvas>
+            <div id="brushCursor"></div>
           </div>
         </div>
+
+        <footer class="bottom-strip">
+          <div class="compare-meter">
+            <span>Toggle Original</span>
+            <input id="compareSlider" type="range" min="0" max="1" value="0" disabled />
+          </div>
+          <div class="hint" id="hint">Tip: Use the adjustment sliders to fine-tune your color grading.</div>
+        </footer>
       </section>
     </main>
     <script src="app.js"></script>
