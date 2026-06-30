@@ -1,559 +1,403 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // --- DOM Element Registrations ---
-  const imageInput = document.getElementById('imageInput');
-  const dropZone = document.getElementById('dropZone');
-  const emptyState = document.getElementById('emptyState');
-  const canvas = document.getElementById('photoCanvas');
-  const ctx = canvas.getContext('2d');
-  const brushCursor = document.getElementById('brushCursor');
-  
-  // Header Meta / Navigation
-  const fileNameDisplay = document.getElementById('fileName');
-  const imageMetaDisplay = document.getElementById('imageMeta');
-  const downloadBtn = document.getElementById('downloadButton');
-  
-  // Zoom Controls
-  const zoomInBtn = document.getElementById('zoomInButton');
-  const zoomOutBtn = document.getElementById('zoomOutButton');
+document.addEventListener("DOMContentLoaded", () => {
+    // --- Elements ---
+    const imageInput = document.getElementById("imageInput");
+    const canvas = document.getElementById("photoCanvas");
+    const ctx = canvas.getContext("2d");
+    const canvasWrapper = document.querySelector(".canvas-wrapper");
+    const emptyState = document.getElementById("emptyState");
+    const fileNameDisplay = document.getElementById("fileName");
+    const imageMetaDisplay = document.getElementById("imageMeta");
+    
+    // Controls
+    const sliders = document.querySelectorAll('.adjustments input[type="range"]');
+    const outputs = document.querySelectorAll('.adjustments output');
+    const resetBtn = document.getElementById("resetAdjustments");
+    const brushSizeSlider = document.getElementById("brushSize");
+    const brushSizeOutput = document.getElementById("brushSizeValue");
+    const brushButtons = document.querySelectorAll(".icon-button");
+    const currentToolName = document.getElementById("toolName");
+    const brushCursor = document.getElementById("brushCursor");
+    const compareSlider = document.getElementById("compareSlider");
+    const undoButton = document.getElementById("undoButton");
+    const redoButton = document.getElementById("redoButton");
+    const downloadButton = document.getElementById("downloadButton");
+    const presetButtons = document.querySelectorAll(".preset-button");
+    
+    // AI Background
+    const removeBgButton = document.getElementById("removeBgButton");
+    const bgStatus = document.getElementById("bgStatus");
+    let net = null; // BodyPix model
 
-  // Undo & Redo Controls
-  const undoButton = document.getElementById('undoButton');
-  const redoButton = document.getElementById('redoButton');
-  
-  // Background Removal Tool Panel Nodes
-  const removeBgButton = document.getElementById('removeBgButton');
-  const bgStatus = document.getElementById('bgStatus');
-  const bgFeather = document.getElementById('bgFeather');
-  const bgFeatherValue = document.getElementById('bgFeatherValue');
-  
-  // Retouch Brush Controls
-  const brushSizeInput = document.getElementById('brushSize');
-  const brushSizeValue = document.getElementById('brushSizeValue');
-  const brushStrengthInput = document.getElementById('brushStrength');
-  const brushStrengthValue = document.getElementById('brushStrengthValue');
-  const toolButtons = document.querySelectorAll('.icon-button');
-  const toolNameDisplay = document.getElementById('toolName');
-
-  // Adjustment Sliders & Smart Presets
-  const adjustmentSliders = document.querySelectorAll('.adjustments input[type="range"]');
-  const resetAdjustmentsBtn = document.getElementById('resetAdjustments');
-  const autoEnhanceBtn = document.getElementById('autoEnhance');
-  const presetButtons = document.querySelectorAll('.preset-button');
-  
-  // Context Management Variables
-  let loadedImage = null;
-  let isDrawing = false;
-  let activeTool = 'heal';
-  
-  // Zoom State Variables
-  let currentZoom = 1;
-  const ZOOM_SPEED = 0.1;
-
-  // Undo & Redo State History Stacks
-  let undoStack = [];
-  let redoStack = [];
-  const MAX_HISTORY_STATES = 20;
-
-  // --- 1. Image Import Management Pipeline ---
-  imageInput.addEventListener('change', handleFileSelection);
-
-  // Drag and Drop implementation
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-  });
-
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      processFile(file);
-    }
-  });
-
-  function handleFileSelection(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    processFile(file);
-  }
-
-  function processFile(file) {
-    fileNameDisplay.textContent = file.name;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        loadedImage = img;
-        initializeCanvasContext();
-      };
-      img.src = event.target.result;
+    // --- State Management ---
+    let originalImage = new Image();
+    let isImageLoaded = false;
+    let baseImageData = null; // The image data containing brush edits / bg removal
+    let displayImageData = null; // The final rendered image
+    
+    let activeTool = "heal";
+    let brushSize = parseInt(brushSizeSlider.value);
+    let isDrawing = false;
+    
+    // Undo / Redo stacks
+    let history = [];
+    let redoStack = [];
+    
+    // Adjustment State
+    let adjustments = {
+        exposure: 0, contrast: 0, saturation: 0, 
+        warmth: 0, tint: 0, hue: 0, red: 0, green: 0, blue: 0
     };
-    reader.readAsDataURL(file);
-  }
 
-  function initializeCanvasContext() {
-    if (!loadedImage) return;
-
-    const maxWorkspaceWidth = Math.min(800, dropZone.clientWidth - 48);
-    const maxWorkspaceHeight = Math.min(500, dropZone.clientHeight - 48);
-    
-    let targetWidth = loadedImage.width;
-    let targetHeight = loadedImage.height;
-    
-    const scaleFactor = Math.min(maxWorkspaceWidth / targetWidth, maxWorkspaceHeight / targetHeight);
-    if (scaleFactor < 1) {
-      targetWidth = Math.floor(targetWidth * scaleFactor);
-      targetHeight = Math.floor(targetHeight * scaleFactor);
+    // --- Initialization & AI Loading ---
+    async function initAI() {
+        try {
+            net = await bodyPix.load({
+                architecture: 'MobileNetV1', outputStride: 16, multiplier: 0.75, quantBytes: 2
+            });
+            bgStatus.textContent = "Ready";
+            bgStatus.className = "status-badge ready";
+            if(isImageLoaded) removeBgButton.disabled = false;
+        } catch (e) {
+            bgStatus.textContent = "Error";
+        }
     }
-    
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    
-    ctx.filter = 'none';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(loadedImage, 0, 0, targetWidth, targetHeight);
-    
-    imageMetaDisplay.textContent = `${loadedImage.width} × ${loadedImage.height} px`;
-    
-    emptyState.style.display = 'none';
-    canvas.style.display = 'block';
-    
-    currentZoom = 1;
-    applyZoom();
-    
-    undoStack = [];
-    redoStack = [];
-    undoStack.push(canvas.toDataURL()); 
-    
-    resetSlidersUI();
-    toggleInteractiveState(true);
-  }
+    initAI();
 
-  function toggleInteractiveState(isEnabled) {
-    const interactiveElements = [removeBgButton, bgFeather, autoEnhanceBtn, downloadBtn, zoomInBtn, zoomOutBtn];
-    interactiveElements.forEach(el => {
-      if (el) el.disabled = !isEnabled;
+    // --- Image Loading ---
+    imageInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            originalImage.onload = () => {
+                // Set canvas dimensions
+                canvas.width = originalImage.width;
+                canvas.height = originalImage.height;
+                
+                // Draw initial image and cache image data
+                ctx.drawImage(originalImage, 0, 0);
+                baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                
+                // UI Updates
+                isImageLoaded = true;
+                emptyState.style.display = "none";
+                canvasWrapper.style.display = "block";
+                fileNameDisplay.textContent = file.name;
+                imageMetaDisplay.textContent = `${originalImage.width} × ${originalImage.height} px`;
+                
+                // Enable controls
+                document.querySelectorAll("button").forEach(b => b.disabled = false);
+                compareSlider.disabled = false;
+                if(!net) removeBgButton.disabled = true;
+
+                // Reset state
+                history = [];
+                redoStack = [];
+                resetAdjustments();
+                saveState();
+                renderCanvas();
+            };
+            originalImage.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
     });
-    updateUndoRedoButtons();
-  }
 
-  function resetSlidersUI() {
-    adjustmentSliders.forEach(slider => {
-      slider.value = 0;
-      const outputField = slider.nextElementSibling;
-      if (outputField && outputField.tagName === 'OUTPUT') {
-        outputField.textContent = '0';
-      }
-    });
-  }
+    // --- Render Pipeline ---
+    // Applies filters and color shifts non-destructively to baseImageData
+    function renderCanvas() {
+        if (!isImageLoaded) return;
 
-  // --- 2. Zoom In & Zoom Out Logic ---
-  zoomInBtn.addEventListener('click', () => {
-    if (!loadedImage) return;
-    currentZoom += ZOOM_SPEED;
-    if (currentZoom > 3) currentZoom = 3; 
-    applyZoom();
-  });
+        // 1. Draw base imageData (brush strokes / BG removal) to canvas
+        ctx.putImageData(baseImageData, 0, 0);
+        
+        // 2. We use an offscreen canvas to apply CSS filters easily
+        const offCanvas = document.createElement("canvas");
+        offCanvas.width = canvas.width; offCanvas.height = canvas.height;
+        const offCtx = offCanvas.getContext("2d");
+        offCtx.putImageData(ctx.getImageData(0,0,canvas.width,canvas.height), 0, 0);
 
-  zoomOutBtn.addEventListener('click', () => {
-    if (!loadedImage) return;
-    currentZoom -= ZOOM_SPEED;
-    if (currentZoom < 0.5) currentZoom = 0.5; 
-    applyZoom();
-  });
+        // Calculate filters
+        const brightness = 100 + parseInt(adjustments.exposure);
+        const contrast = 100 + parseInt(adjustments.contrast);
+        const saturate = 100 + parseInt(adjustments.saturation);
+        const hueRotate = parseInt(adjustments.hue);
+        
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturate}%) hue-rotate(${hueRotate}deg)`;
+        ctx.drawImage(offCanvas, 0, 0);
+        ctx.filter = "none";
 
-  function applyZoom() {
-    canvas.style.transform = `scale(${currentZoom})`;
-  }
+        // 3. Manual Pixel Adjustments (RGB Channels, Warmth, Tint)
+        if (adjustments.red !== 0 || adjustments.green !== 0 || adjustments.blue !== 0 || adjustments.warmth !== 0 || adjustments.tint !== 0) {
+            let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let data = imgData.data;
+            
+            let rMod = parseInt(adjustments.red);
+            let gMod = parseInt(adjustments.green);
+            let bMod = parseInt(adjustments.blue);
+            
+            // Warmth: Add Red, Subtract Blue
+            rMod += parseInt(adjustments.warmth);
+            bMod -= parseInt(adjustments.warmth);
+            
+            // Tint: Add Green, Subtract Magenta(R+B)
+            gMod += parseInt(adjustments.tint);
+            rMod -= Math.floor(parseInt(adjustments.tint) / 2);
+            bMod -= Math.floor(parseInt(adjustments.tint) / 2);
 
-  // --- 3. Undo & Redo System Engine ---
-  function saveHistoryState() {
-    if (!loadedImage) return;
-    if (undoStack.length >= MAX_HISTORY_STATES) {
-      undoStack.shift(); 
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i+3] === 0) continue; // skip transparent
+                data[i]   = Math.min(255, Math.max(0, data[i] + rMod));     // R
+                data[i+1] = Math.min(255, Math.max(0, data[i+1] + gMod)); // G
+                data[i+2] = Math.min(255, Math.max(0, data[i+2] + bMod)); // B
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        // Save display data for compare slider logic
+        displayImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     }
-    undoStack.push(canvas.toDataURL());
-    redoStack = []; 
-    updateUndoRedoButtons();
-  }
 
-  undoButton.addEventListener('click', () => {
-    if (undoStack.length <= 1) return; 
+    // --- Sliders & Adjustments ---
+    sliders.forEach((slider, index) => {
+        slider.addEventListener("input", (e) => {
+            const key = e.target.dataset.adjust;
+            adjustments[key] = e.target.value;
+            outputs[index].textContent = e.target.value;
+            
+            // Re-render only if not using compare tool
+            if(parseInt(compareSlider.value) === 0) {
+                renderCanvas();
+            }
+        });
+    });
 
-    const currentState = undoStack.pop();
-    redoStack.push(currentState);
+    function resetAdjustments() {
+        for (let key in adjustments) adjustments[key] = 0;
+        sliders.forEach((slider, i) => {
+            slider.value = 0;
+            outputs[i].textContent = "0";
+        });
+        renderCanvas();
+    }
+    resetBtn.addEventListener("click", resetAdjustments);
+
+    // --- History (Undo/Redo) ---
+    function saveState() {
+        if(!baseImageData) return;
+        // Keep last 10 states to save memory
+        if (history.length > 10) history.shift();
+        
+        // Save clone of baseImageData
+        const clone = new ImageData(
+            new Uint8ClampedArray(baseImageData.data),
+            baseImageData.width, baseImageData.height
+        );
+        history.push(clone);
+        redoStack = [];
+        updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+        undoButton.disabled = history.length <= 1;
+        redoButton.disabled = redoStack.length === 0;
+    }
+
+    undoButton.addEventListener("click", () => {
+        if (history.length > 1) {
+            redoStack.push(history.pop());
+            baseImageData = new ImageData(
+                new Uint8ClampedArray(history[history.length - 1].data),
+                canvas.width, canvas.height
+            );
+            updateHistoryButtons();
+            renderCanvas();
+        }
+    });
+
+    redoButton.addEventListener("click", () => {
+        if (redoStack.length > 0) {
+            const state = redoStack.pop();
+            history.push(state);
+            baseImageData = new ImageData(
+                new Uint8ClampedArray(state.data),
+                canvas.width, canvas.height
+            );
+            updateHistoryButtons();
+            renderCanvas();
+        }
+    });
+
+    // --- Brush Interactions ---
+    brushButtons.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            brushButtons.forEach(b => b.classList.remove("active"));
+            e.target.classList.add("active");
+            activeTool = e.target.dataset.tool;
+            currentToolName.textContent = activeTool.charAt(0).toUpperCase() + activeTool.slice(1);
+        });
+    });
+
+    brushSizeSlider.addEventListener("input", (e) => {
+        brushSize = parseInt(e.target.value);
+        brushSizeOutput.textContent = brushSize;
+        brushCursor.style.width = `${brushSize}px`;
+        brushCursor.style.height = `${brushSize}px`;
+    });
+
+    // Cursor positioning
+    canvas.addEventListener("mousemove", (e) => {
+        if (!isImageLoaded) return;
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const x = (e.clientX - rect.left);
+        const y = (e.clientY - rect.top);
+        
+        brushCursor.style.display = "block";
+        brushCursor.style.left = `${x}px`;
+        brushCursor.style.top = `${y}px`;
+
+        if (isDrawing) {
+            applyBrushStroke(x * scaleX, y * scaleY);
+            renderCanvas();
+        }
+    });
+
+    canvas.addEventListener("mouseleave", () => brushCursor.style.display = "none");
     
-    const previousStateImg = undoStack[undoStack.length - 1];
-    restoreCanvasFromDataURL(previousStateImg);
-  });
+    canvas.addEventListener("mousedown", (e) => {
+        if(!isImageLoaded || compareSlider.value == 1) return;
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        applyBrushStroke(x, y);
+        renderCanvas();
+    });
 
-  redoButton.addEventListener('click', () => {
-    if (redoStack.length === 0) return;
+    window.addEventListener("mouseup", () => {
+        if (isDrawing) {
+            isDrawing = false;
+            saveState(); // Save state after stroke completes
+        }
+    });
 
-    const nextStateImg = redoStack.pop();
-    undoStack.push(nextStateImg);
-    restoreCanvasFromDataURL(nextStateImg);
-  });
+    // Localized Pixel Manipulation for Brush
+    function applyBrushStroke(cx, cy) {
+        const radius = brushSize / 2;
+        const data = baseImageData.data;
+        const w = canvas.width;
+        const h = canvas.height;
 
-  function restoreCanvasFromDataURL(dataUrl) {
-    const img = new Image();
-    img.onload = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
-      updateUndoRedoButtons();
+        // Bounding box for optimization
+        const minX = Math.max(0, Math.floor(cx - radius));
+        const maxX = Math.min(w, Math.ceil(cx + radius));
+        const minY = Math.max(0, Math.floor(cy - radius));
+        const maxY = Math.min(h, Math.ceil(cy + radius));
+
+        for (let y = minY; y < maxY; y++) {
+            for (let x = minX; x < maxX; x++) {
+                const dx = x - cx; const dy = y - cy;
+                const distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < radius) {
+                    const idx = (y * w + x) * 4;
+                    const falloff = 1 - (distance / radius); // Soft brush edge
+                    const intensity = 0.1 * falloff; 
+
+                    if (activeTool === "brighten") {
+                        data[idx] = Math.min(255, data[idx] + 255 * intensity);
+                        data[idx+1] = Math.min(255, data[idx+1] + 255 * intensity);
+                        data[idx+2] = Math.min(255, data[idx+2] + 255 * intensity);
+                    } else if (activeTool === "darken") {
+                        data[idx] = Math.max(0, data[idx] - 255 * intensity);
+                        data[idx+1] = Math.max(0, data[idx+1] - 255 * intensity);
+                        data[idx+2] = Math.max(0, data[idx+2] - 255 * intensity);
+                    } else if (activeTool === "smooth" || activeTool === "heal") {
+                        // Very basic blur/heal approximation: blend with center pixel
+                        const centerIdx = (Math.floor(cy)*w + Math.floor(cx))*4;
+                        data[idx] = data[idx] * (1-intensity) + data[centerIdx] * intensity;
+                        data[idx+1] = data[idx+1] * (1-intensity) + data[centerIdx+1] * intensity;
+                        data[idx+2] = data[idx+2] * (1-intensity) + data[centerIdx+2] * intensity;
+                    }
+                }
+            }
+        }
+    }
+
+    // --- AI Background Removal ---
+    removeBgButton.addEventListener("click", async () => {
+        if (!net || !isImageLoaded) return;
+        removeBgButton.disabled = true;
+        removeBgButton.innerHTML = "Processing...";
+
+        try {
+            // Predict segmentation
+            const segmentation = await net.segmentPerson(canvas);
+            
+            // Apply mask to baseImageData
+            const data = baseImageData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const isPerson = segmentation.data[i / 4];
+                if (!isPerson) {
+                    data[i + 3] = 0; // Set alpha to 0 for background
+                }
+            }
+            
+            saveState();
+            renderCanvas();
+        } catch (error) {
+            console.error("BG Removal failed:", error);
+        } finally {
+            removeBgButton.disabled = false;
+            removeBgButton.innerHTML = '<span class="icon">✂</span> Remove Background';
+        }
+    });
+
+    // --- Presets ---
+    const presets = {
+        clean: { exposure: 10, contrast: 15, saturation: 5, warmth: 0, tint: 0, hue: 0, red: 0, green: 0, blue: 0 },
+        portrait: { exposure: 5, contrast: 10, saturation: -5, warmth: 10, tint: 5, hue: 0, red: 5, green: 0, blue: 0 },
+        cinema: { exposure: -5, contrast: 25, saturation: -15, warmth: -10, tint: 0, hue: 0, red: 0, green: 10, blue: 15 },
+        vintage: { exposure: 0, contrast: -10, saturation: -30, warmth: 20, tint: 10, hue: -5, red: 10, green: 0, blue: -10 }
     };
-    img.src = dataUrl;
-  }
 
-  function updateUndoRedoButtons() {
-    if (!loadedImage) {
-      undoButton.disabled = true;
-      redoButton.disabled = true;
-      return;
-    }
-    undoButton.disabled = undoStack.length <= 1;
-    redoButton.disabled = redoStack.length === 0;
-  }
-
-  // --- 4. Smart Presets & Auto Enhance Logic ---
-  autoEnhanceBtn.addEventListener('click', () => {
-    if (!loadedImage) return;
-    updateSliderValue('exposure', 15);
-    updateSliderValue('contrast', 10);
-    updateSliderValue('saturation', 8);
-    updateSliderValue('clarity', 15);
-    
-    applyAdjustmentFilters();
-    saveHistoryState();
-  });
-
-  presetButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      if (!loadedImage) return;
-      const preset = button.dataset.preset;
-      
-      resetSlidersUI();
-
-      switch (preset) {
-        case 'clean':
-          updateSliderValue('exposure', 10);
-          updateSliderValue('contrast', 5);
-          updateSliderValue('saturation', -5);
-          updateSliderValue('clarity', 10);
-          break;
-        case 'portrait':
-          updateSliderValue('exposure', 15);
-          updateSliderValue('contrast', -5);
-          updateSliderValue('saturation', 5);
-          updateSliderValue('warmth', 8);
-          break;
-        case 'cinema':
-          updateSliderValue('exposure', -5);
-          updateSliderValue('contrast', 25);
-          updateSliderValue('saturation', 15);
-          updateSliderValue('warmth', -10);
-          updateSliderValue('vignette', 35);
-          break;
-        case 'product':
-          updateSliderValue('exposure', 20);
-          updateSliderValue('contrast', 15);
-          updateSliderValue('saturation', 20);
-          updateSliderValue('clarity', 25);
-          break;
-      }
-      
-      applyAdjustmentFilters();
-      saveHistoryState();
-    });
-  });
-
-  function updateSliderValue(adjustType, value) {
-    const slider = document.querySelector(`.adjustments input[data-adjust="${adjustType}"]`);
-    if (slider) {
-      slider.value = value;
-      const outputField = slider.nextElementSibling;
-      if (outputField && outputField.tagName === 'OUTPUT') {
-        outputField.textContent = value;
-      }
-    }
-  }
-
-  // --- 5. AI Background Removal Pipeline Execution ---
-  removeBgButton.addEventListener('click', async () => {
-    if (!loadedImage) return;
-
-    bgStatus.textContent = 'AI Processing...';
-    bgStatus.className = 'status-badge processing';
-    removeBgButton.disabled = true;
-
-    try {
-      await isolateSubjectForeground();
-      bgStatus.textContent = 'Removed';
-      bgStatus.className = 'status-badge active';
-      saveHistoryState(); 
-    } catch (error) {
-      console.error("AI Background Removal Error: ", error);
-      bgStatus.textContent = 'Error';
-      bgStatus.className = 'status-badge error';
-    } finally {
-      removeBgButton.disabled = false;
-    }
-  });
-
-  async function isolateSubjectForeground() {
-    const w = canvas.width;
-    const h = canvas.height;
-    
-    if (typeof bodyPix === 'undefined') {
-      throw new Error("BodyPix library is not loaded.");
-    }
-
-    if (!window.bodyPixModel) {
-      bgStatus.textContent = 'Loading AI Model...';
-      window.bodyPixModel = await bodyPix.load({
-        architecture: 'MobileNetV1',
-        outputStride: 16,
-        multiplier: 0.75,
-        quantBytes: 2
-      });
-    }
-
-    const segmentation = await window.bodyPixModel.segmentPerson(canvas, {
-      internalResolution: 'medium',
-      segmentationThreshold: 0.7 
+    presetButtons.forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const p = presets[e.target.dataset.preset];
+            if(p) {
+                Object.keys(p).forEach(key => {
+                    adjustments[key] = p[key];
+                    const slider = document.querySelector(`[data-adjust="${key}"]`);
+                    if(slider) {
+                        slider.value = p[key];
+                        slider.nextElementSibling.textContent = p[key];
+                    }
+                });
+                renderCanvas();
+            }
+        });
     });
 
-    const imgData = ctx.getImageData(0, 0, w, h);
-    const data = imgData.data;
-    
-    for (let i = 0; i < segmentation.data.length; i++) {
-      const isPerson = segmentation.data[i] === 1;
-      const alphaIndex = i * 4 + 3;
-
-      if (!isPerson) {
-        data[alphaIndex] = 0; 
-      }
-    }
-    
-    ctx.putImageData(imgData, 0, 0);
-
-    // Apply basic feathering if set
-    const featherValue = parseInt(bgFeather.value, 10);
-    if (featherValue > 0) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.filter = `blur(${featherValue / 2}px)`;
-      ctx.drawImage(canvas, 0, 0);
-      ctx.restore();
-    }
-  }
-
-  bgFeather.addEventListener('input', (e) => {
-    bgFeatherValue.textContent = e.target.value;
-  });
-
-  // --- 6. Adjustment Sliders Integration ---
-  adjustmentSliders.forEach(slider => {
-    const outputField = slider.nextElementSibling;
-    slider.addEventListener('input', (e) => {
-      if (outputField && outputField.tagName === 'OUTPUT') {
-        outputField.textContent = e.target.value;
-      }
-      applyAdjustmentFilters();
+    // --- Compare Slider ---
+    compareSlider.addEventListener("input", (e) => {
+        if(!isImageLoaded) return;
+        if(e.target.value === "1") {
+            // Show Original
+            ctx.drawImage(originalImage, 0, 0);
+        } else {
+            // Show Edited
+            if(displayImageData) ctx.putImageData(displayImageData, 0, 0);
+        }
     });
 
-    slider.addEventListener('change', () => {
-      saveHistoryState();
+    // --- Export ---
+    downloadButton.addEventListener("click", () => {
+        if(!isImageLoaded) return;
+        const link = document.createElement("a");
+        link.download = `LumaForge_Edit_${fileNameDisplay.textContent}`;
+        link.href = canvas.toDataURL("image/jpeg", 0.9);
+        link.click();
     });
-  });
-
-  function applyAdjustmentFilters() {
-    if (!loadedImage) return;
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(loadedImage, 0, 0, canvas.width, canvas.height);
-    
-    let filterString = '';
-    let warmthValue = 0;
-    let vignetteValue = 0;
-    
-    adjustmentSliders.forEach(slider => {
-      const type = slider.dataset.adjust;
-      const value = parseInt(slider.value, 10);
-      
-      if (value === 0) return;
-      
-      switch(type) {
-        case 'exposure':
-          filterString += `brightness(${100 + value}%) `;
-          break;
-        case 'contrast':
-          filterString += `contrast(${100 + value}%) `;
-          break;
-        case 'saturation':
-          filterString += `saturate(${100 + value}%) `;
-          break;
-        case 'clarity':
-          filterString += `contrast(${100 + (value * 0.5)}%) saturate(${100 + (value * 0.1)}%) `;
-          break;
-        case 'warmth':
-          warmthValue = value;
-          break;
-        case 'vignette':
-          vignetteValue = value;
-          break;
-      }
-    });
-    
-    if (filterString.trim() !== '') {
-      ctx.filter = filterString;
-      ctx.drawImage(canvas, 0, 0);
-      ctx.filter = 'none'; 
-    }
-
-    // Warmth (Sepia/Blue blend Effect)
-    if (warmthValue !== 0) {
-      ctx.save();
-      if (warmthValue > 0) {
-        ctx.fillStyle = `rgba(255, 165, 0, ${warmthValue / 400})`; // Orange tint
-      } else {
-        ctx.fillStyle = `rgba(0, 0, 255, ${Math.abs(warmthValue) / 400})`; // Blue tint
-      }
-      ctx.globalCompositeOperation = 'color';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-    }
-
-    // Vignette Effect (Dark corners)
-    if (vignetteValue > 0) {
-      ctx.save();
-      const gradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, Math.min(canvas.width, canvas.height) * 0.3,
-        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.7
-      );
-      gradient.addColorStop(0, 'rgba(0,0,0,0)');
-      gradient.addColorStop(1, `rgba(0,0,0,${vignetteValue / 100})`);
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-    }
-  }
-
-  resetAdjustmentsBtn.addEventListener('click', () => {
-    if (loadedImage) initializeCanvasContext();
-  });
-
-  // --- 7. Retouch Toolbar Controls Map Routing ---
-  toolButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      toolButtons.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeTool = btn.dataset.tool;
-      toolNameDisplay.textContent = activeTool.charAt(0).toUpperCase() + activeTool.slice(1);
-    });
-  });
-
-  brushSizeInput.addEventListener('input', (e) => {
-    brushSizeValue.textContent = e.target.value;
-    updateBrushCursorSize();
-  });
-
-  brushStrengthInput.addEventListener('input', (e) => {
-    brushStrengthValue.textContent = e.target.value;
-  });
-
-  function updateBrushCursorSize() {
-    const size = parseInt(brushSizeInput.value, 10) * currentZoom;
-    brushCursor.style.width = `${size}px`;
-    brushCursor.style.height = `${size}px`;
-  }
-
-  // --- 8. Custom Canvas Brush Retouch System Hooks ---
-  const canvasStage = document.getElementById('dropZone');
-
-  canvasStage.addEventListener('mouseenter', () => {
-    if (loadedImage) {
-      brushCursor.style.display = 'block';
-      updateBrushCursorSize();
-    }
-  });
-
-  canvasStage.addEventListener('mouseleave', () => {
-    brushCursor.style.display = 'none';
-  });
-
-  canvasStage.addEventListener('mousemove', (e) => {
-    if (!loadedImage) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / currentZoom;
-    const y = (e.clientY - rect.top) / currentZoom;
-    
-    // Position cursor center with client mouse alignment
-    brushCursor.style.left = `${e.clientX}px`;
-    brushCursor.style.top = `${e.clientY}px`;
-    
-    if (isDrawing) {
-      executeBrushStroke(x, y);
-    }
-  });
-
-  canvas.addEventListener('mousedown', (e) => {
-    if (!loadedImage) return;
-    isDrawing = true;
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / currentZoom;
-    const y = (e.clientY - rect.top) / currentZoom;
-    executeBrushStroke(x, y);
-  });
-
-  window.addEventListener('mouseup', () => {
-    if (isDrawing) {
-      isDrawing = false;
-      saveHistoryState(); 
-    }
-  });
-
-  function executeBrushStroke(x, y) {
-    const radius = parseInt(brushSizeInput.value, 10) / 2;
-    const strength = parseInt(brushStrengthInput.value, 10) / 100;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.clip();
-    
-    if (activeTool === 'brighten') {
-      ctx.fillStyle = `rgba(255,255,255,${0.15 * strength})`;
-      ctx.fill();
-    } else if (activeTool === 'darken') {
-      ctx.fillStyle = `rgba(0,0,0,${0.15 * strength})`;
-      ctx.fill();
-    } else if (activeTool === 'smooth') {
-      ctx.globalAlpha = 0.2 * strength;
-      // Fast programmatic approximation of a box blur blend locally
-      ctx.drawImage(canvas, x - 2, y - 2, radius, radius, x - 1, y - 1, radius, radius);
-    } else if (activeTool === 'heal') {
-      ctx.globalAlpha = strength;
-      // Proximally sample context offset pixels to patch area
-      ctx.drawImage(canvas, x + 16, y + 16, radius * 2, radius * 2, x - radius, y - radius, radius * 2, radius * 2);
-    }
-    
-    ctx.restore();
-  }
-
-  // --- 9. File Export Infrastructure Trigger ---
-  downloadBtn.addEventListener('click', () => {
-    if (!canvas || !loadedImage) return;
-    const targetDataUrl = canvas.toDataURL('image/png');
-    const transferAnchor = document.createElement('a');
-    transferAnchor.download = 'lumaforge-retouched-export.png';
-    transferAnchor.href = targetDataUrl;
-    transferAnchor.click();
-  });
 });
